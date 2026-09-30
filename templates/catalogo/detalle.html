@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    catalogo/detalle.html — FICHA PÚBLICA DEL COMPONENTE
    Responsabilidad: mostrar todos los datos del producto: SKU,
    marca, categoría, precio, stock, disponibilidad y descripción
    técnica, además de otros componentes de la misma categoría.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block titulo %}{{ producto.nombre }} · {{ NOMBRE_COMERCIAL }}{% endblock %}
 {% block descripcion %}{{ producto.nombre }} — {{ producto.marca.nombre }}. {{ producto.descripcion|truncatechars:140 }}{% endblock %}

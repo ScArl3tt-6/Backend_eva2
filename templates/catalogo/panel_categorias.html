@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    catalogo/panel_categorias.html — LISTADO DE GESTIÓN DE CATEGORÍAS
    Responsabilidad: listar las categorías con buscador, filtro de
    estado y paginación, y ofrecer las acciones de ver, editar, dar
@@ -9,7 +9,7 @@
    Las filas de registros dados de baja se muestran atenuadas
    (clase fila-inactiva) y con el botón de reactivar, porque la
    baja es lógica: la fila sigue en la base de datos.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

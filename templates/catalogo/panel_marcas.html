@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    catalogo/panel_marcas.html — LISTADO DE GESTIÓN DE MARCAS
    Responsabilidad: listar las marcas con buscador, filtro de estado
    y paginación, y ofrecer ver, editar, dar de baja y reactivar.
@@ -8,7 +8,7 @@
    La marca vive en su propia tabla justamente por la 3.ª forma
    normal: el país de origen depende de la marca, no del producto,
    así que no puede guardarse dentro de Producto.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

@@ -511,7 +511,220 @@ class PruebasContextProcessor(TestCase):
 
 
 # ============================================================
-# BLOQUE 9 — CONFIGURACIÓN DEL PROYECTO
+# BLOQUE 9 — NINGUNA PANTALLA FILTRA CÓDIGO DE PLANTILLA
+# Responsabilidad: garantizar que lo que llega al navegador sea
+# interfaz limpia, sin rastro de código, comentarios ni variables
+# sin renderizar.
+#
+# Por qué existe esta prueba: Django solo admite los comentarios
+# {# ... #} en UNA línea. Un comentario de varias líneas NO se
+# descarta: el lexer no lo reconoce como token y lo imprime tal
+# cual en la página. El proyecto tenía 31 comentarios de bloque de
+# varias líneas y se veían como texto en el navegador. Se
+# convirtieron a {% comment %} ... {% endcomment %}, que sí admite
+# varias líneas, y esta prueba impide que el problema vuelva.
+#
+# La lección de método: las pruebas anteriores usaban assertContains,
+# que solo comprueba que algo ESTÉ presente. Nunca detectaría texto
+# sobrante. Esta prueba comprueba lo contrario: que ciertos textos
+# NO aparezcan.
+# ============================================================
+class PruebasSinFugasDePlantilla(BaseSitio):
+    """Ninguna pantalla debe mostrar código de plantilla ni texto técnico."""
+
+    # Marcas que jamás deben llegar al navegador.
+    MARCAS_PROHIBIDAS = [
+        "{#", "#}",          # comentarios de plantilla
+        "{%", "%}",          # etiquetas de plantilla
+        "{{", "}}",          # variables sin renderizar
+        "BLOQUE",            # encabezados de los comentarios de bloque
+        "Responsabilidad:",  # primera línea de esos comentarios
+        "====",              # separador de los bloques
+    ]
+
+    def pantallas(self):
+        """Todas las pantallas HTML del sitio, incluidos los formularios."""
+        return [
+            # --- Públicas ---
+            "/",
+            "/catalogo/",
+            f"/catalogo/{self.producto.id}/",
+            "/documentacion/",
+            "/redireccion/",
+            # --- Panel ---
+            "/panel/",
+            # --- CRUD de categorías ---
+            "/panel/categorias/",
+            "/panel/categorias/nueva/",
+            f"/panel/categorias/{self.categoria.id}/",
+            f"/panel/categorias/{self.categoria.id}/editar/",
+            f"/panel/categorias/{self.categoria.id}/desactivar/",
+            # --- CRUD de marcas ---
+            "/panel/marcas/",
+            "/panel/marcas/nueva/",
+            f"/panel/marcas/{self.marca.id}/",
+            f"/panel/marcas/{self.marca.id}/editar/",
+            f"/panel/marcas/{self.marca.id}/desactivar/",
+            # --- CRUD de productos ---
+            "/panel/productos/",
+            "/panel/productos/nuevo/",
+            f"/panel/productos/{self.producto.id}/",
+            f"/panel/productos/{self.producto.id}/editar/",
+            f"/panel/productos/{self.producto.id}/desactivar/",
+            # --- CRUD de usuarios ---
+            "/panel/usuarios/",
+            "/panel/usuarios/nuevo/",
+            f"/panel/usuarios/{self.cliente.id}/",
+            f"/panel/usuarios/{self.cliente.id}/editar/",
+            f"/panel/usuarios/{self.cliente.id}/desactivar/",
+            # --- Carros ---
+            "/panel/carros/",
+            f"/panel/carros/?usuario={self.cliente.id}",
+            # --- Órdenes ---
+            "/panel/ordenes/",
+            f"/panel/ordenes/{self.orden.id}/",
+            # --- Documentación de la API ---
+            "/api/docs/",
+            "/api/redoc/",
+            # --- Pantallas de redirección por rutas inexistentes ---
+            "/asdf",
+            "/api/xyz",
+            "/panel/productos/999999/",
+        ]
+
+    def _revisar(self, ruta, cuerpo):
+        """Comprueba que el cuerpo no contenga ninguna marca prohibida."""
+        for marca in self.MARCAS_PROHIBIDAS:
+            if marca in cuerpo:
+                posicion = cuerpo.find(marca)
+                contexto = cuerpo[max(0, posicion - 120) : posicion + 140]
+                self.fail(
+                    f"La pantalla {ruta} filtra «{marca}» al navegador.\n"
+                    f"Contexto:\n...{contexto}..."
+                )
+
+    def test_ninguna_pantalla_filtra_codigo_de_plantilla(self):
+        """Recorre todas las pantallas y falla si alguna muestra código."""
+        for ruta in self.pantallas():
+            with self.subTest(ruta=ruta):
+                respuesta = self.client.get(ruta, follow=True)
+
+                self.assertEqual(respuesta.status_code, 200, f"Falló {ruta}")
+                self._revisar(ruta, respuesta.content.decode("utf-8", "replace"))
+
+    def test_la_browsable_api_de_drf_no_filtra_codigo(self):
+        """La API navegable de DRF usa una plantilla propia: también se revisa."""
+        respuesta = self.client.get("/api/productos/", HTTP_ACCEPT="text/html")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self._revisar("/api/productos/ (Browsable API)", respuesta.content.decode("utf-8", "replace"))
+
+    def test_las_plantillas_no_tienen_comentarios_multilinea(self):
+        """Ninguna plantilla debe usar {# #} en varias líneas: Django lo imprime."""
+        import glob
+        import io
+        import re
+
+        patron = re.compile(r"\{#(.*?)#\}", re.DOTALL)
+        culpables = []
+
+        for ruta in sorted(glob.glob("templates/**/*.html", recursive=True)):
+            contenido = io.open(ruta, encoding="utf-8").read()
+            for coincidencia in patron.finditer(contenido):
+                if "\n" in coincidencia.group(0):
+                    culpables.append(ruta)
+                    break
+
+        self.assertEqual(
+            culpables,
+            [],
+            "Estas plantillas usan {# #} en varias líneas, que Django imprime "
+            "como texto. Use {% comment %} ... {% endcomment %}: " + ", ".join(culpables),
+        )
+
+
+# ============================================================
+# BLOQUE 10 — ARCHIVOS ESTÁTICOS INEXISTENTES
+# Último hueco por el que se escapaba el 404 de Django: el
+# runserver de staticfiles atiende las direcciones que empiezan por
+# STATIC_URL antes de que Django resuelva la URL, así que el
+# middleware del proyecto no las veía.
+#
+# La solución es el comando propio core/management/commands/
+# runserver.py. Estas pruebas comprueban el comportamiento por la
+# vía que sí pasa por el enrutado (el cliente de pruebas no usa el
+# manejador de estáticos), y que el comando esté bien registrado.
+# ============================================================
+class PruebasEstaticosInexistentes(TestCase):
+    """Un archivo estático ausente no muestra la página 404 de Django."""
+
+    def test_el_comando_runserver_del_proyecto_tiene_prioridad(self):
+        """El runserver que se ejecuta es el de core, no el de staticfiles."""
+        from django.core.management import get_commands
+
+        self.assertEqual(
+            get_commands()["runserver"],
+            "core",
+            "core debe ir antes de django.contrib.staticfiles en INSTALLED_APPS.",
+        )
+
+    def test_core_va_antes_de_staticfiles_en_installed_apps(self):
+        """El orden de INSTALLED_APPS es lo que da esa prioridad."""
+        aplicaciones = list(settings.INSTALLED_APPS)
+        posicion_core = next(i for i, a in enumerate(aplicaciones) if a.startswith("core"))
+        posicion_static = aplicaciones.index("django.contrib.staticfiles")
+
+        self.assertLess(posicion_core, posicion_static)
+
+    def test_el_manejador_propio_devuelve_la_pantalla_de_redireccion(self):
+        """Ante un archivo ausente, el manejador responde con la pantalla del sitio."""
+        from django.test import RequestFactory
+
+        from core.management.commands.runserver import ManejadorEstaticosConRedireccion
+
+        manejador = ManejadorEstaticosConRedireccion(application=None)
+        peticion = RequestFactory().get("/static/noexiste.css")
+
+        respuesta = manejador.get_response(peticion)
+
+        self.assertEqual(respuesta.status_code, 200)
+        contenido = respuesta.content.decode("utf-8", "replace")
+        self.assertIn("La página que buscas no existe", contenido)
+        self.assertNotIn("{%", contenido)
+
+    def test_el_manejador_propio_sigue_sirviendo_los_archivos_reales(self):
+        """Un archivo que existe se entrega tal cual, no como pantalla HTML."""
+        from django.test import RequestFactory
+
+        from core.management.commands.runserver import ManejadorEstaticosConRedireccion
+
+        manejador = ManejadorEstaticosConRedireccion(application=None)
+        peticion = RequestFactory().get("/static/css/tema.css")
+
+        respuesta = manejador.get_response(peticion)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn("css", respuesta.headers.get("Content-Type", ""))
+
+    def test_media_inexistente_no_muestra_404(self):
+        """Una dirección de media ausente llega al middleware y muestra el aviso."""
+        respuesta = self.client.get("/media/nada.jpg", follow=True)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "La página que buscas no existe")
+
+    def test_una_ruta_con_extension_no_intenta_la_barra_final(self):
+        """Evita el bucle /static/x.css -> /static/x.css/ -> ..."""
+        respuesta = self.client.get("/static/noexiste.css", follow=False)
+
+        self.assertNotEqual(
+            respuesta.status_code, 302,
+            "Una ruta con extensión de archivo no debe redirigir agregando barra.",
+        )
+
+
+# ============================================================
+# BLOQUE 11 — CONFIGURACIÓN DEL PROYECTO
 # Comprueba los ajustes que la pauta exige explícitamente.
 # ============================================================
 class PruebasConfiguracion(TestCase):

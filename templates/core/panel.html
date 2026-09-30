@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    core/panel.html — PANEL DE GESTIÓN
    Responsabilidad: ofrecer una tarjeta de acceso por cada módulo
    administrable, con el conteo real de registros activos e
    inactivos para que se vea de inmediato que hay datos cargados.
 
    Los conteos los calcula core.views.panel con el ORM.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">
@@ -38,12 +38,12 @@
             <div class="d-flex flex-wrap gap-2">
               <span class="badge-hp badge-activo">
                 <i class="bi bi-check-circle" aria-hidden="true"></i>
-                {{ modulo.activos|miles }} registro(s)
+                {{ modulo.activos|miles }} {{ modulo.etiqueta_activos }}
               </span>
               {% if modulo.inactivos %}
                 <span class="badge-hp badge-inactivo">
                   <i class="bi bi-slash-circle" aria-hidden="true"></i>
-                  {{ modulo.inactivos|miles }} de baja
+                  {{ modulo.inactivos|miles }} {{ modulo.etiqueta_inactivos }}
                 </span>
               {% endif %}
             </div>

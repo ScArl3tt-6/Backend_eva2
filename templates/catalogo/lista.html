@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    catalogo/lista.html — CATÁLOGO PÚBLICO
    Responsabilidad: mostrar los componentes publicados con el
    formulario de filtros, la búsqueda, el ordenamiento y la
@@ -10,7 +10,7 @@
    FilterSet de django-filter que usa GET /api/productos/. Por eso
    los filtros de esta pantalla y los de la API se comportan igual:
    están definidos una sola vez, en catalogo/filtros.py.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

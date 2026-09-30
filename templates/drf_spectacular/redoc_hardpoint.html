@@ -1,5 +1,5 @@
 {% extends "drf_spectacular/redoc.html" %}
-{# ============================================================
+{% comment %} ============================================================
    drf_spectacular/redoc_hardpoint.html — REDOC PROPIO
    Responsabilidad: usar ReDoc añadiendo la barra superior y el pie
    con los datos de la alumna, para cumplir el requisito de que esa
@@ -7,7 +7,7 @@
 
    Extiende la plantilla de drf-spectacular (con otro nombre, para no
    provocar una recursión) y solo agrega contenido a sus bloques.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block head %}
   {{ block.super }}

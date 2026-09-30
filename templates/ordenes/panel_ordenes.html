@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    ordenes/panel_ordenes.html — LISTADO DE ÓRDENES
    Responsabilidad: listar las ventas con filtros por estado,
    cliente y rango de fechas, y mostrar el resumen por estado.
@@ -9,7 +9,7 @@
    de django-filter que usa GET /api/ordenes/. El total de cada
    orden viene anotado con Sum en la consulta, así que no se consulta
    el detalle de cada orden por separado.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

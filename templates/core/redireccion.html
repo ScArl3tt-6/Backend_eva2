@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{# ============================================================
+{% comment %} ============================================================
    core/redireccion.html — PANTALLA DE REDIRECCIÓN
    Responsabilidad: atender cualquier dirección inexistente con la
    misma estética del sitio, en lugar de mostrar el 404 de Django.
@@ -16,7 +16,7 @@
      2) el temporizador de static/js/app.js, que además muestra la
         cuenta regresiva en pantalla.
    Y siempre queda el botón «Volver al inicio» para no esperar.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block titulo %}Página no encontrada · {{ NOMBRE_COMERCIAL }}{% endblock %}
 

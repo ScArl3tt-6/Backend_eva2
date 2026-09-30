@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    ordenes/panel_orden_detalle.html — FICHA DE LA ORDEN
    Responsabilidad: mostrar el número de orden (UUID), el cliente, el
    estado, el detalle con los PRECIOS CONGELADOS, el total, el
@@ -15,7 +15,7 @@
        con transiciones_posibles).
      · Si el pago falla por stock, el mensaje de error indica qué
        producto faltó y en qué cantidad.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block contenido %}
 

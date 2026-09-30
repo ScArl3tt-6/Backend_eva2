@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    usuarios/panel_usuarios.html — LISTADO DE GESTIÓN DE USUARIOS
    Responsabilidad: listar las cuentas con buscador, filtro de
    estado y filtro por rol, y ofrecer ver, editar, dar de baja y
@@ -9,7 +9,7 @@
    En los usuarios la baja lógica se marca con is_active = False,
    que es el campo que Django usa para impedir el inicio de sesión;
    la fila y el historial de órdenes se conservan intactos.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

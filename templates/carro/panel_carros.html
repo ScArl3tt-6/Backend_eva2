@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    carro/panel_carros.html — GESTIÓN DE CARROS DE COMPRAS
    Responsabilidad: mostrar y operar el carro persistido del cliente
    elegido en el selector «Ver carro de:».
@@ -14,7 +14,7 @@
      · agregar al carro NO descuenta stock;
      · si el stock bajó por debajo de lo pedido, se advierte antes de
        intentar el pago, que es donde el rechazo sería definitivo.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

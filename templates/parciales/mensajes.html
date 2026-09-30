@@ -1,4 +1,4 @@
-{# ============================================================
+{% comment %} ============================================================
    parciales/mensajes.html — MENSAJES FLASH
    Responsabilidad: mostrar los avisos de django.contrib.messages
    con las clases de Bootstrap.
@@ -10,7 +10,7 @@
    segundos (data-autocerrar, en static/js/app.js). Los de error y
    advertencia permanecen, porque suelen explicar algo que hay que
    leer con calma, como qué producto quedó sin stock al pagar.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 {% if messages %}
   <div class="mb-3">
     {% for message in messages %}

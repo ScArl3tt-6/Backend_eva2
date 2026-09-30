@@ -1,5 +1,5 @@
 {% extends "drf_spectacular/swagger_ui.html" %}
-{# ============================================================
+{% comment %} ============================================================
    drf_spectacular/swagger_ui_hardpoint.html — SWAGGER UI PROPIO
    Responsabilidad: usar el Swagger UI de drf-spectacular añadiendo
    el pie con los datos de la alumna y un enlace de vuelta al sitio.
@@ -12,13 +12,13 @@
 
    Los datos llegan del context processor datos_alumno, igual que en
    el resto del sitio; no están escritos a mano.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block head %}
   {{ block.super }}
   {# ===== BLOQUE 1: ESTILO DEL PIE Y DE LA BARRA SUPERIOR ===== #}
-  {# Solo el tema propio y los iconos: NO se carga Bootstrap completo,
-     para no alterar la apariencia del Swagger UI de la biblioteca. #}
+  {% comment %} Solo el tema propio y los iconos: NO se carga Bootstrap completo,
+     para no alterar la apariencia del Swagger UI de la biblioteca. {% endcomment %}
   <link rel="stylesheet" href="/static/css/tema.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    usuarios/panel_usuario_detalle.html — FICHA DEL USUARIO
    Responsabilidad: mostrar los datos de la cuenta, su rol, su carro
    persistido y sus últimas órdenes.
@@ -8,7 +8,7 @@
    El bloque del carro es la evidencia visual de que el carro vive
    en PostgreSQL: se puede consultar aquí sin que el cliente tenga
    ninguna sesión abierta en el navegador.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block contenido %}
 

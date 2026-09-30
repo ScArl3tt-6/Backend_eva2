@@ -1,4 +1,4 @@
-{# ============================================================
+{% comment %} ============================================================
    parciales/navbar.html — BARRA DE NAVEGACIÓN
    Responsabilidad: mostrar el nombre comercial con su ícono y los
    accesos a los cuatro módulos del sitio.
@@ -6,7 +6,7 @@
    El nombre comercial viene del context processor (del .env), y la
    sección activa la calcula core.context_processors.navegacion, de
    modo que la plantilla no compara URL a mano.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 <nav class="navbar navbar-expand-lg navbar-hp sticky-top">
   <div class="container">
 

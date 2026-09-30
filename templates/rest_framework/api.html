@@ -1,5 +1,5 @@
 {% extends "rest_framework/base.html" %}
-{# ============================================================
+{% comment %} ============================================================
    rest_framework/api.html — BROWSABLE API DE DRF PERSONALIZADA
    Responsabilidad: sobrescribir la plantilla de la API navegable de
    Django REST Framework para que también muestre la marca del sitio
@@ -14,7 +14,7 @@
    Requisito de la pauta: el nombre, la sección y el año deben
    aparecer en TODAS las pantallas, incluida esta. Los datos llegan
    del context processor datos_alumno, nunca escritos a mano.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bootstrap_navbar_variant %}navbar-default{% endblock %}
 

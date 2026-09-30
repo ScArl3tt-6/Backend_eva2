@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    catalogo/panel_productos.html — LISTADO DE GESTIÓN DE PRODUCTOS
    Responsabilidad: listar los componentes con buscador, filtro de
    estado y paginación, mostrando el SKU, la categoría, la marca, el
@@ -10,7 +10,7 @@
    El stock se muestra con color según su nivel, para detectar de un
    vistazo los productos agotados o con últimas unidades, que son los
    que provocan el rechazo 409 al intentar pagar.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block bajada %}
   <p class="bajada">

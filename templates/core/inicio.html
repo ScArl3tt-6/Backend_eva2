@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load formato %}
-{# ============================================================
+{% comment %} ============================================================
    core/inicio.html — PORTADA DEL SITIO
    Responsabilidad: presentar la tienda, mostrar estadísticas
    REALES calculadas contra PostgreSQL, los productos destacados y
@@ -8,7 +8,7 @@
 
    Todas las cifras vienen de core.views.inicio, que las consulta
    con el ORM; ninguna está escrita a mano en la plantilla.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 
 {% block titulo %}{{ NOMBRE_COMERCIAL }} · Componentes informáticos{% endblock %}
 

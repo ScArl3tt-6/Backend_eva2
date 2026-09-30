@@ -1,4 +1,4 @@
-{# ============================================================
+{% comment %} ============================================================
    parciales/paginacion.html — PAGINACIÓN REUTILIZABLE
    Responsabilidad: navegar entre las páginas de cualquier listado
    conservando los filtros elegidos.
@@ -7,7 +7,7 @@
    consulta actual sin el parámetro page; al concatenarle
    &page=N los filtros de búsqueda no se pierden al cambiar de
    página.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 {% if pagina.paginator.num_pages > 1 %}
   <nav aria-label="Paginación de resultados" class="mt-3">
     <ul class="pagination paginacion-hp justify-content-center flex-wrap mb-0">

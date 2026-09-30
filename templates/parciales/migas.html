@@ -1,4 +1,4 @@
-{# ============================================================
+{% comment %} ============================================================
    parciales/migas.html — MIGAS DE PAN
    Responsabilidad: mostrar el camino de navegación de la pantalla
    actual, para que se sepa siempre dónde se está y cómo volver.
@@ -6,7 +6,7 @@
    Cada vista entrega la lista "migas" con elementos que tienen
    etiqueta y url; la última lleva url = None y se muestra como
    posición actual, sin enlace.
-   ============================================================ #}
+   ============================================================ {% endcomment %}
 {% if migas %}
   <nav class="migas" aria-label="Camino de navegación">
     <a href="/"><i class="bi bi-house-door" aria-hidden="true"></i> Inicio</a>
