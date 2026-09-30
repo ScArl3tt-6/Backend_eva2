@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{# ============================================================
+   parciales/confirmar.html — CONFIRMACIÓN DE BAJA LÓGICA
+   Responsabilidad: pedir confirmación antes de dar de baja un
+   registro, y explicar con claridad qué ocurre de verdad.
+
+   Punto importante para la defensa: el texto dice explícitamente
+   que NO se borra ninguna fila. La baja deja el registro con
+   activo = false (o is_active = false en los usuarios), de modo
+   que el historial de ventas y los carros que lo referencian
+   siguen siendo válidos y el registro puede reactivarse.
+
+   La confirmación vive en el servidor, no solo en un cuadro de
+   diálogo del navegador, así que funciona aunque el JavaScript
+   esté desactivado.
+   ============================================================ #}
+
+{% block contenido %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="tarjeta">
+
+      {# ===== BLOQUE 1: ADVERTENCIA ===== #}
+      <div class="tarjeta-cuerpo text-center">
+        <span class="icono-modulo grande mx-auto mb-3" aria-hidden="true">
+          <i class="bi {{ icono|default:'bi-exclamation-triangle' }}"></i>
+        </span>
+        <h2 class="h4">{{ mensaje_confirmacion }}</h2>
+        <p class="texto-suave mb-0">{{ explicacion }}</p>
+      </div>
+
+      {# ===== BLOQUE 2: DATOS DEL REGISTRO ===== #}
+      <div class="tarjeta-cuerpo border-top">
+        <p class="dato-etiqueta">Registro afectado</p>
+        <p class="dato-valor">{{ objeto }}</p>
+      </div>
+
+      {# ===== BLOQUE 3: BOTONES ===== #}
+      <div class="tarjeta-pie">
+        <form method="post" class="d-flex flex-wrap gap-2 justify-content-end mb-0">
+          {% csrf_token %}
+          <a href="{{ url_cancelar }}" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> No, volver
+          </a>
+          <button type="submit" class="btn {{ clase_boton|default:'btn-danger' }}">
+            <i class="bi bi-slash-circle" aria-hidden="true"></i> {{ texto_boton|default:"Confirmar" }}
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

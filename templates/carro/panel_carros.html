@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   carro/panel_carros.html — GESTIÓN DE CARROS DE COMPRAS
+   Responsabilidad: mostrar y operar el carro persistido del cliente
+   elegido en el selector «Ver carro de:».
+
+   Todas las acciones de esta pantalla (agregar, cambiar cantidad,
+   quitar, vaciar y hacer el checkout) llaman a las MISMAS funciones
+   de carro/servicios.py y ordenes/servicios.py que usa la API REST.
+   No hay una segunda implementación de las reglas.
+
+   Dos avisos que aparecen a propósito en la pantalla:
+     · agregar al carro NO descuenta stock;
+     · si el stock bajó por debajo de lo pedido, se advierte antes de
+       intentar el pago, que es donde el rechazo sería definitivo.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    El carro de cada cliente vive en PostgreSQL, ligado a su id de usuario mediante
+    una relación 1 a 1. Por eso sobrevive al cierre de sesión, al cierre del
+    navegador y al cambio de dispositivo. Hay {{ total_clientes }} cliente(s) activo(s).
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: SELECTOR DE CLIENTE ===== #}
+<form method="get" class="panel-filtros mb-4">
+  <div class="row g-3 align-items-end">
+    <div class="col-12 col-lg-6">
+      <label class="form-label" for="{{ selector.usuario.id_for_label }}">
+        {{ selector.usuario.label }}
+      </label>
+      {{ selector.usuario }}
+    </div>
+    <div class="col-12 col-lg-3">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-search" aria-hidden="true"></i> Ver el carro
+      </button>
+    </div>
+  </div>
+</form>
+
+{% if not cliente %}
+  {# ===== BLOQUE 2: SIN CLIENTE ELEGIDO ===== #}
+  <div class="tarjeta">
+    <div class="estado-vacio">
+      <i class="bi bi-person-lines-fill icono" aria-hidden="true"></i>
+      <h3>Elija un cliente para ver su carro</h3>
+      <p>
+        Use el selector de arriba. Se listan los clientes activos: los
+        administradores de TI no tienen carro, porque su rol es gestionar la tienda,
+        no comprar.
+      </p>
+      <a href="/panel/usuarios/?rol=CLIENTE" class="btn btn-primary">
+        <i class="bi bi-people" aria-hidden="true"></i> Ver los clientes
+      </a>
+    </div>
+  </div>
+
+{% else %}
+
+  {# ===== BLOQUE 3: RESUMEN DEL CARRO ===== #}
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo" aria-hidden="true"><i class="bi bi-person"></i></span>
+          <div>
+            <p class="dato-etiqueta mb-1">Cliente</p>
+            <p class="dato-valor mb-0">
+              <a href="/panel/usuarios/{{ cliente.pk }}/">{{ cliente.username }}</a>
+            </p>
+            <p class="texto-tenue texto-mini mb-0">{{ cliente.email }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-4">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo secundario" aria-hidden="true"><i class="bi bi-box-seam"></i></span>
+          <div>
+            <p class="cifra">{{ carro.cantidad_items|miles }}</p>
+            <p class="rotulo">Unidades en el carro</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-4">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo acento" aria-hidden="true"><i class="bi bi-cash-coin"></i></span>
+          <div>
+            <p class="cifra">{{ carro.total|clp }}</p>
+            <p class="rotulo">Total con precios vigentes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 4: AVISOS DE STOCK ===== #}
+  {% if avisos %}
+    <div class="alert alert-warning" role="alert">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1" aria-hidden="true"></i>
+      <div>
+        <strong>Atención: el stock cambió desde que se cargó el carro.</strong>
+        <ul class="mb-0 mt-2">
+          {% for aviso in avisos %}
+            <li>
+              «{{ aviso.producto }}» (SKU {{ aviso.sku }}): pidió
+              {{ aviso.solicitado }} y hay {{ aviso.disponible }}. {{ aviso.motivo }}
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="mb-0 mt-2 texto-chico">
+          El checkout puede hacerse igual, pero el pago se rechazará con un
+          <strong>409</strong> hasta que se ajusten las cantidades.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ===== BLOQUE 5: AGREGAR UN PRODUCTO ===== #}
+  <div class="tarjeta mb-4">
+    <div class="tarjeta-cabecera">
+      <h2><i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar un producto al carro</h2>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <form method="post" action="/panel/carros/agregar/">
+        {% csrf_token %}
+        <input type="hidden" name="usuario" value="{{ cliente.pk }}">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-lg-6">
+            <label class="form-label" for="{{ formulario_agregar.producto.id_for_label }}">
+              {{ formulario_agregar.producto.label }}
+            </label>
+            {{ formulario_agregar.producto }}
+          </div>
+          <div class="col-6 col-lg-3">
+            <label class="form-label" for="{{ formulario_agregar.cantidad.id_for_label }}">
+              {{ formulario_agregar.cantidad.label }}
+            </label>
+            {{ formulario_agregar.cantidad }}
+          </div>
+          <div class="col-6 col-lg-3">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar
+            </button>
+          </div>
+        </div>
+      </form>
+      <p class="texto-tenue texto-mini mb-0 mt-3">
+        Si el producto ya está en el carro, la cantidad se <strong>suma</strong> al ítem
+        existente en lugar de crear otra fila. Esta operación
+        <strong>no descuenta stock</strong>: solo valida que la cantidad pedida no
+        supere las unidades disponibles.
+      </p>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 6: CONTENIDO DEL CARRO ===== #}
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2><i class="bi bi-cart3" aria-hidden="true"></i> Contenido del carro</h2>
+      {% if items %}
+        <div class="d-flex flex-wrap gap-2">
+          <form method="post" action="/panel/carros/vaciar/" class="d-inline"
+                data-confirmar="¿Confirma vaciar el carro de {{ cliente.username }}? Los ítems quedan con activo = false, no se borran.">
+            {% csrf_token %}
+            <input type="hidden" name="usuario" value="{{ cliente.pk }}">
+            <button type="submit" class="btn btn-light-hp btn-sm">
+              <i class="bi bi-trash3" aria-hidden="true"></i> Vaciar el carro
+            </button>
+          </form>
+          <form method="post" action="/panel/carros/checkout/" class="d-inline"
+                data-confirmar="¿Generar la orden con los precios actuales? Los precios quedarán congelados y el carro se vaciará.">
+            {% csrf_token %}
+            <input type="hidden" name="usuario" value="{{ cliente.pk }}">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-receipt-cutoff" aria-hidden="true"></i> Hacer el checkout
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if items %}
+      <div class="tabla-responsiva">
+        <table class="tabla-hp">
+          <thead>
+            <tr>
+              <th scope="col">Producto</th>
+              <th scope="col" class="numerico">Precio vigente</th>
+              <th scope="col">Cantidad</th>
+              <th scope="col" class="numerico">Subtotal</th>
+              <th scope="col">Stock</th>
+              <th scope="col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>
+                  <a href="/panel/productos/{{ item.producto_id }}/">
+                    <strong>{{ item.producto.nombre|truncatechars:46 }}</strong>
+                  </a>
+                  <br>
+                  <span class="codigo-sku">{{ item.producto.sku }}</span>
+                  <span class="texto-tenue texto-mini">· {{ item.producto.marca.nombre }}</span>
+                </td>
+                <td class="numerico">{{ item.precio_vigente|clp }}</td>
+                <td>
+                  <form method="post" action="/panel/carros/actualizar/{{ item.producto_id }}/"
+                        class="d-flex align-items-center gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="usuario" value="{{ cliente.pk }}">
+                    <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" step="1"
+                           class="form-control form-control-sm campo-cantidad"
+                           aria-label="Cantidad de {{ item.producto.nombre }}">
+                    <button type="submit" class="btn btn-light-hp btn-sm" title="Actualizar la cantidad">
+                      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                </td>
+                <td class="numerico"><span class="precio">{{ item.subtotal|clp }}</span></td>
+                <td>
+                  {% if item.stock_suficiente %}
+                    <span class="stock-disponible texto-mini">
+                      <i class="bi bi-check-circle" aria-hidden="true"></i> {{ item.producto.stock }} disponible(s)
+                    </span>
+                  {% else %}
+                    <span class="stock-agotado texto-mini">
+                      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Solo {{ item.producto.stock }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="post" action="/panel/carros/quitar/{{ item.producto_id }}/"
+                        data-confirmar="¿Quitar «{{ item.producto.nombre }}» del carro?">
+                    {% csrf_token %}
+                    <input type="hidden" name="usuario" value="{{ cliente.pk }}">
+                    <button type="submit" class="btn btn-light-hp btn-sm" title="Quitar del carro">
+                      <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3" class="numerico">Total del carro</th>
+              <th class="numerico"><span class="precio-congelado">{{ carro.total|clp }}</span></th>
+              <th colspan="2"></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="tarjeta-pie">
+        <p class="texto-tenue texto-mini mb-0">
+          Carro creado el {{ carro.creado_en|date:"d/m/Y H:i" }} · Última modificación:
+          {{ carro.actualizado_en|date:"d/m/Y H:i" }} · Identificador del carro en la
+          base de datos: {{ carro.pk }}
+        </p>
+      </div>
+
+    {% else %}
+      {# ===== BLOQUE 7: CARRO VACÍO ===== #}
+      <div class="estado-vacio">
+        <i class="bi bi-cart-x icono" aria-hidden="true"></i>
+        <h3>El carro de {{ cliente.username }} está vacío</h3>
+        <p>
+          La fila del carro existe en PostgreSQL desde que se creó la cuenta, pero no
+          tiene ítems vigentes. Agregue un producto con el formulario de arriba.
+        </p>
+        <a href="/catalogo/" class="btn btn-primary">
+          <i class="bi bi-grid" aria-hidden="true"></i> Explorar el catálogo
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ===== BLOQUE 8: ÍTEMS QUITADOS (BAJA LÓGICA) ===== #}
+  {% if items_quitados %}
+    <div class="tarjeta mt-4">
+      <div class="tarjeta-cabecera">
+        <h2><i class="bi bi-archive" aria-hidden="true"></i> Ítems quitados del carro</h2>
+        <span class="badge-hp badge-inactivo">{{ items_quitados|length }} fila(s) conservada(s)</span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <p class="texto-suave texto-chico">
+          Quitar un producto del carro es una <strong>baja lógica</strong>: la fila
+          sigue en la base de datos con <code>activo = false</code>. Si el producto se
+          vuelve a agregar, se reactiva esa misma fila en lugar de crear otra.
+        </p>
+        <ul class="lista-limpia">
+          {% for item in items_quitados %}
+            <li class="texto-suave texto-chico mb-1">
+              <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>
+              {{ item.producto.nombre }} (última cantidad: {{ item.cantidad }})
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ===== BLOQUE 9: ÓRDENES RECIENTES DEL CLIENTE ===== #}
+  {% if ordenes_recientes %}
+    <div class="tarjeta mt-4">
+      <div class="tarjeta-cabecera">
+        <h2><i class="bi bi-receipt" aria-hidden="true"></i> Órdenes recientes de {{ cliente.username }}</h2>
+        <a href="/panel/ordenes/?usuario={{ cliente.pk }}" class="btn btn-outline-primary btn-sm">
+          Ver todas <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+      <div class="tabla-responsiva">
+        <table class="tabla-hp">
+          <thead>
+            <tr>
+              <th scope="col">Número</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Creada el</th>
+              <th scope="col" class="numerico">Total</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for orden in ordenes_recientes %}
+              <tr>
+                <td><code class="codigo-sku">{{ orden.codigo_corto }}</code></td>
+                <td>
+                  <span class="badge-hp {{ orden.estado|clase_estado }}">
+                    <i class="bi {{ orden.estado|icono_estado }}" aria-hidden="true"></i>
+                    {{ orden.get_estado_display }}
+                  </span>
+                </td>
+                <td class="texto-suave texto-chico">{{ orden.creada_en|date:"d/m/Y H:i" }}</td>
+                <td class="numerico"><span class="precio">{{ orden.total|clp }}</span></td>
+                <td>
+                  <a href="/panel/ordenes/{{ orden.pk }}/" class="btn btn-light-hp btn-sm">
+                    <i class="bi bi-eye" aria-hidden="true"></i> Ver
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+{% endif %}
+
+{% endblock %}

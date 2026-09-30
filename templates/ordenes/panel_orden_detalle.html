@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   ordenes/panel_orden_detalle.html — FICHA DE LA ORDEN
+   Responsabilidad: mostrar el número de orden (UUID), el cliente, el
+   estado, el detalle con los PRECIOS CONGELADOS, el total, el
+   historial de estados y los botones de transición permitidos.
+
+   Detalles pensados para la defensa oral:
+     · Junto al precio congelado se muestra el precio actual del
+       catálogo; si cambió, se señala la diferencia. Es la prueba
+       visible de que la venta no se altera al cambiar el catálogo.
+     · Los botones que aparecen son SOLO los que la máquina de
+       estados permite desde el estado actual (la vista los calcula
+       con transiciones_posibles).
+     · Si el pago falla por stock, el mensaje de error indica qué
+       producto faltó y en qué cantidad.
+   ============================================================ #}
+
+{% block contenido %}
+
+<div class="row g-4">
+
+  {# ===== BLOQUE 1: DATOS DE LA ORDEN ===== #}
+  <div class="col-lg-8">
+    <div class="tarjeta mb-4">
+      <div class="tarjeta-cabecera">
+        <h2>
+          <span class="icono-modulo" aria-hidden="true"><i class="bi bi-receipt"></i></span>
+          Orden {{ orden.codigo_corto }}
+        </h2>
+        <span class="badge-hp {{ orden.estado|clase_estado }}">
+          <i class="bi {{ orden.estado|icono_estado }}" aria-hidden="true"></i>
+          {{ orden.get_estado_display }}
+        </span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="row g-3">
+          <div class="col-12">
+            <p class="dato-etiqueta">Número de orden (UUID)</p>
+            <p class="dato-valor"><code class="codigo-sku">{{ orden.codigo }}</code></p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Cliente</p>
+            <p class="dato-valor">
+              <a href="/panel/usuarios/{{ orden.usuario_id }}/">{{ orden.usuario.username }}</a>
+            </p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Creada el</p>
+            <p class="dato-valor">{{ orden.creada_en|date:"d/m/Y H:i" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Pagada el</p>
+            <p class="dato-valor">{{ orden.pagada_en|date:"d/m/Y H:i"|default:"Sin pagar" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Unidades</p>
+            <p class="dato-valor">{{ orden.cantidad_items|miles }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ===== BLOQUE 2: DETALLE CON PRECIOS CONGELADOS ===== #}
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-list-ul" aria-hidden="true"></i> Productos de la orden</h3>
+        <span class="badge-hp badge-neutro">
+          <i class="bi bi-snow" aria-hidden="true"></i> Precios congelados
+        </span>
+      </div>
+      <div class="tabla-responsiva">
+        <table class="tabla-hp">
+          <thead>
+            <tr>
+              <th scope="col">Producto</th>
+              <th scope="col" class="numerico">Cantidad</th>
+              <th scope="col" class="numerico">Precio congelado</th>
+              <th scope="col" class="numerico">Precio actual</th>
+              <th scope="col" class="numerico">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for detalle in detalles %}
+              <tr>
+                <td>
+                  <a href="/panel/productos/{{ detalle.producto_id }}/">
+                    <strong>{{ detalle.producto.nombre|truncatechars:46 }}</strong>
+                  </a>
+                  <br><span class="codigo-sku">{{ detalle.producto.sku }}</span>
+                </td>
+                <td class="numerico">{{ detalle.cantidad }}</td>
+                <td class="numerico">
+                  <span class="precio-congelado">{{ detalle.precio_unitario|clp }}</span>
+                </td>
+                <td class="numerico texto-suave">
+                  {{ detalle.producto.precio|clp }}
+                  {% if detalle.producto.precio != detalle.precio_unitario %}
+                    <br><span class="texto-mini stock-bajo">
+                      <i class="bi bi-arrow-left-right" aria-hidden="true"></i> cambió
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="numerico"><span class="precio">{{ detalle.subtotal|clp }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4" class="numerico">Total de la orden</th>
+              <th class="numerico"><span class="precio-grande">{{ orden.total|clp }}</span></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="tarjeta-pie">
+        <p class="texto-tenue texto-mini mb-0">
+          El total no se guarda en la base de datos: se calcula sumando
+          cantidad × precio congelado de cada línea. El precio congelado es el que el
+          cliente aceptó al hacer el checkout y no cambia aunque el catálogo suba de
+          precio después.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 3: ACCIONES SEGÚN LAS TRANSICIONES PERMITIDAS ===== #}
+  <div class="col-lg-4">
+    <div class="tarjeta mb-4 sin-impresion">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Cambiar el estado</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        {% if transiciones %}
+          <p class="texto-suave texto-chico">
+            Desde <strong>{{ orden.estado }}</strong> la orden puede pasar a:
+            {% for estado in transiciones %}<strong>{{ estado }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.
+          </p>
+
+          <div class="d-grid gap-2">
+            {% if puede_pagar %}
+              <form method="post" action="/panel/ordenes/{{ orden.pk }}/pagar/" class="d-grid"
+                    data-confirmar="¿Registrar el pago? Se verificará y descontará el stock de cada producto.">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-credit-card" aria-hidden="true"></i> Registrar el pago
+                </button>
+              </form>
+            {% endif %}
+
+            {% if puede_entregar %}
+              <form method="post" action="/panel/ordenes/{{ orden.pk }}/estado/" class="d-grid">
+                {% csrf_token %}
+                <input type="hidden" name="estado" value="ENTREGADO">
+                <input type="hidden" name="observacion" value="Entrega confirmada desde el panel de gestión.">
+                <button type="submit" class="btn btn-success">
+                  <i class="bi bi-box-seam" aria-hidden="true"></i> Marcar entregada
+                </button>
+              </form>
+            {% endif %}
+
+            {% if puede_cancelar %}
+              <form method="post" action="/panel/ordenes/{{ orden.pk }}/estado/" class="d-grid"
+                    data-confirmar="{% if orden.es_pagada %}¿Cancelar esta orden pagada? El stock se repondrá automáticamente.{% else %}¿Cancelar esta orden pendiente?{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="estado" value="CANCELADO">
+                <input type="hidden" name="observacion" value="Cancelación registrada desde el panel de gestión.">
+                <button type="submit" class="btn btn-danger">
+                  <i class="bi bi-x-circle" aria-hidden="true"></i> Cancelar la orden
+                </button>
+              </form>
+            {% endif %}
+          </div>
+
+          {# --- Cambio con observación propia --- #}
+          <hr class="separador-suave">
+          <form method="post" action="/panel/ordenes/{{ orden.pk }}/estado/">
+            {% csrf_token %}
+            <p class="dato-etiqueta mb-2">Cambio con observación</p>
+            <div class="mb-2">
+              <label class="form-label" for="{{ formulario_estado.estado.id_for_label }}">
+                {{ formulario_estado.estado.label }}
+              </label>
+              {{ formulario_estado.estado }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ formulario_estado.observacion.id_for_label }}">
+                {{ formulario_estado.observacion.label }}
+              </label>
+              {{ formulario_estado.observacion }}
+              <div class="form-text">{{ formulario_estado.observacion.help_text }}</div>
+            </div>
+            <button type="submit" class="btn btn-outline-primary w-100">
+              <i class="bi bi-check2" aria-hidden="true"></i> Aplicar el cambio
+            </button>
+          </form>
+
+        {% else %}
+          <div class="caja-aviso">
+            <i class="bi bi-lock me-1" aria-hidden="true"></i>
+            <strong>{{ orden.estado }}</strong> es un estado final: la orden ya no
+            admite más cambios. Cualquier intento responde 400 con el detalle de las
+            transiciones permitidas.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ===== BLOQUE 4: EFECTO SOBRE EL STOCK ===== #}
+    <div class="tarjeta mb-4">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-box-seam" aria-hidden="true"></i> Estado del stock</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        {% if orden.es_pendiente %}
+          <p class="texto-suave mb-0 texto-chico">
+            El stock <strong>todavía no se descontó</strong>. Se verificará y se
+            descontará al registrar el pago, dentro de una transacción con las filas de
+            los productos bloqueadas. Si alguna unidad no alcanza, el pago se rechaza
+            con un <strong>409</strong> y la orden sigue en PENDIENTE.
+          </p>
+        {% elif orden.es_pagada %}
+          <p class="texto-suave mb-0 texto-chico">
+            El stock <strong>ya fue descontado</strong> al aprobarse el pago. Si la
+            orden se cancela, las unidades se <strong>reponen</strong> automáticamente.
+          </p>
+        {% elif orden.estado == "ENTREGADO" %}
+          <p class="texto-suave mb-0 texto-chico">
+            La venta se cerró: el stock quedó descontado de forma definitiva.
+          </p>
+        {% else %}
+          <p class="texto-suave mb-0 texto-chico">
+            La orden está cancelada. Si había llegado a pagarse, el stock se repuso al
+            cancelarla; si se canceló estando pendiente, nunca se descontó.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="tarjeta sin-impresion">
+      <div class="tarjeta-cuerpo">
+        <div class="d-grid gap-2">
+          <a href="/panel/ordenes/" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+          </a>
+          <a href="/api/ordenes/{{ orden.pk }}/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-braces" aria-hidden="true"></i> Ver en la API
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ===== BLOQUE 5: HISTORIAL DE ESTADOS (AUDITORÍA) ===== #}
+<div class="tarjeta mt-4">
+  <div class="tarjeta-cabecera">
+    <h3><i class="bi bi-clock-history" aria-hidden="true"></i> Historial de estados</h3>
+    <span class="badge-hp badge-neutro">{{ historial|length }} registro(s)</span>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <ul class="linea-tiempo">
+      {% for registro in historial %}
+        <li>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            {% if registro.estado_anterior %}
+              <span class="badge-hp {{ registro.estado_anterior|clase_estado }}">
+                {{ registro.estado_anterior }}
+              </span>
+              <i class="bi bi-arrow-right texto-tenue" aria-hidden="true"></i>
+            {% else %}
+              <span class="badge-hp badge-neutro">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i> Creación
+              </span>
+              <i class="bi bi-arrow-right texto-tenue" aria-hidden="true"></i>
+            {% endif %}
+            <span class="badge-hp {{ registro.estado_nuevo|clase_estado }}">
+              <i class="bi {{ registro.estado_nuevo|icono_estado }}" aria-hidden="true"></i>
+              {{ registro.estado_nuevo }}
+            </span>
+          </div>
+          <span class="fecha">
+            {{ registro.fecha|date:"d/m/Y H:i:s" }}
+            {% if registro.cambiado_por %}· por {{ registro.cambiado_por.username }}{% else %}· registro automático{% endif %}
+          </span>
+          {% if registro.observacion %}
+            <p class="observacion">{{ registro.observacion }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{% endblock %}

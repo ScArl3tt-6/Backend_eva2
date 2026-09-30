@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   usuarios/panel_usuario_detalle.html — FICHA DEL USUARIO
+   Responsabilidad: mostrar los datos de la cuenta, su rol, su carro
+   persistido y sus últimas órdenes.
+
+   El bloque del carro es la evidencia visual de que el carro vive
+   en PostgreSQL: se puede consultar aquí sin que el cliente tenga
+   ninguna sesión abierta en el navegador.
+   ============================================================ #}
+
+{% block contenido %}
+
+<div class="row g-4">
+
+  {# ===== BLOQUE 1: DATOS DE LA CUENTA ===== #}
+  <div class="col-lg-8">
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>
+          <span class="icono-modulo {% if objeto.rol == "ADMINISTRADOR" %}secundario{% endif %}" aria-hidden="true">
+            <i class="bi {% if objeto.rol == "ADMINISTRADOR" %}bi-shield-lock{% else %}bi-person{% endif %}"></i>
+          </span>
+          {{ objeto.username }}
+        </h2>
+        <div class="d-flex flex-wrap gap-2">
+          {% if objeto.rol == "ADMINISTRADOR" %}
+            <span class="badge-hp badge-rol-administrador">{{ objeto.get_rol_display }}</span>
+          {% else %}
+            <span class="badge-hp badge-rol-cliente">{{ objeto.get_rol_display }}</span>
+          {% endif %}
+          {% if objeto.is_active %}
+            <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activo</span>
+          {% else %}
+            <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> Dado de baja</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="row g-3">
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Identificador</p>
+            <p class="dato-valor">{{ objeto.pk }}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Nombre completo</p>
+            <p class="dato-valor">{{ objeto.nombre_completo }}</p>
+          </div>
+          <div class="col-12 col-lg-4">
+            <p class="dato-etiqueta">Correo electrónico</p>
+            <p class="dato-valor">{{ objeto.email }}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Teléfono</p>
+            <p class="dato-valor">{{ objeto.telefono|default:"No registrado" }}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Es staff de Django</p>
+            <p class="dato-valor">{% if objeto.is_staff %}Sí{% else %}No{% endif %}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Última entrada</p>
+            <p class="dato-valor">{{ objeto.last_login|date:"d/m/Y H:i"|default:"Nunca ha iniciado sesión" }}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Cuenta creada el</p>
+            <p class="dato-valor">{{ objeto.creado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+          <div class="col-6 col-lg-4">
+            <p class="dato-etiqueta">Órdenes registradas</p>
+            <p class="dato-valor">{{ total_ordenes|miles }}</p>
+          </div>
+        </div>
+
+        <div class="caja-aviso mt-3">
+          <i class="bi bi-key me-1" aria-hidden="true"></i>
+          El campo <code>is_staff</code> se sincroniza automáticamente con el rol en
+          <code>Usuario.save()</code>, de modo que un Administrador de TI funcione
+          tanto con los permisos propios del proyecto como con los de Django.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 2: ACCIONES ===== #}
+  <div class="col-lg-4">
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-gear" aria-hidden="true"></i> Acciones</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="d-grid gap-2">
+          <a href="/panel/usuarios/{{ objeto.pk }}/editar/" class="btn btn-primary">
+            <i class="bi bi-pencil" aria-hidden="true"></i> Editar usuario
+          </a>
+          {% if objeto.rol == "CLIENTE" %}
+            <a href="/panel/carros/?usuario={{ objeto.pk }}" class="btn btn-secondary">
+              <i class="bi bi-cart3" aria-hidden="true"></i> Operar su carro
+            </a>
+          {% endif %}
+          {% if objeto.is_active %}
+            <a href="/panel/usuarios/{{ objeto.pk }}/desactivar/" class="btn btn-danger">
+              <i class="bi bi-person-dash" aria-hidden="true"></i> Dar de baja
+            </a>
+          {% else %}
+            <form method="post" action="/panel/usuarios/{{ objeto.pk }}/reactivar/" class="d-grid">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reactivar
+              </button>
+            </form>
+          {% endif %}
+          <a href="/panel/usuarios/" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+          </a>
+          {% if objeto.rol == "CLIENTE" %}
+            <a href="/api/usuarios/{{ objeto.pk }}/carro/" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-braces" aria-hidden="true"></i> Ver su carro en la API
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ===== BLOQUE 3: CARRO PERSISTIDO ===== #}
+{% if carro %}
+  <div class="tarjeta mt-4">
+    <div class="tarjeta-cabecera">
+      <h3><i class="bi bi-cart3" aria-hidden="true"></i> Carro persistido en PostgreSQL</h3>
+      <a href="/panel/carros/?usuario={{ objeto.pk }}" class="btn btn-outline-primary btn-sm">
+        Operar el carro <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
+    {% if items_carro %}
+      <div class="tabla-responsiva">
+        <table class="tabla-hp">
+          <thead>
+            <tr>
+              <th scope="col">Producto</th>
+              <th scope="col" class="numerico">Cantidad</th>
+              <th scope="col" class="numerico">Precio vigente</th>
+              <th scope="col" class="numerico">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items_carro %}
+              <tr>
+                <td>
+                  <a href="/panel/productos/{{ item.producto_id }}/">{{ item.producto.nombre|truncatechars:52 }}</a>
+                  <br><span class="codigo-sku">{{ item.producto.sku }}</span>
+                </td>
+                <td class="numerico">{{ item.cantidad }}</td>
+                <td class="numerico">{{ item.precio_vigente|clp }}</td>
+                <td class="numerico"><span class="precio">{{ item.subtotal|clp }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3" class="numerico">Total del carro</th>
+              <th class="numerico"><span class="precio-congelado">{{ carro.total|clp }}</span></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    {% else %}
+      <div class="estado-vacio">
+        <i class="bi bi-cart-x icono" aria-hidden="true"></i>
+        <h3>El carro está vacío</h3>
+        <p>
+          Existe la fila del carro en la base de datos, pero no tiene ítems vigentes.
+        </p>
+        <a href="/panel/carros/?usuario={{ objeto.pk }}" class="btn btn-primary">
+          <i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar productos
+        </a>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+{# ===== BLOQUE 4: ÚLTIMAS ÓRDENES ===== #}
+<div class="tarjeta mt-4">
+  <div class="tarjeta-cabecera">
+    <h3><i class="bi bi-receipt" aria-hidden="true"></i> Últimas órdenes</h3>
+    <a href="/panel/ordenes/?usuario={{ objeto.pk }}" class="btn btn-outline-primary btn-sm">
+      Ver todas sus órdenes <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {% if ordenes %}
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Número</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Creada el</th>
+            <th scope="col" class="numerico">Total</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for orden in ordenes %}
+            <tr>
+              <td><code class="codigo-sku">{{ orden.codigo_corto }}</code></td>
+              <td>
+                <span class="badge-hp {{ orden.estado|clase_estado }}">
+                  <i class="bi {{ orden.estado|icono_estado }}" aria-hidden="true"></i>
+                  {{ orden.get_estado_display }}
+                </span>
+              </td>
+              <td class="texto-suave texto-chico">{{ orden.creada_en|date:"d/m/Y H:i" }}</td>
+              <td class="numerico"><span class="precio">{{ orden.total|clp }}</span></td>
+              <td>
+                <a href="/panel/ordenes/{{ orden.pk }}/" class="btn btn-light-hp btn-sm">
+                  <i class="bi bi-eye" aria-hidden="true"></i> Ver
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="estado-vacio">
+      <i class="bi bi-receipt icono" aria-hidden="true"></i>
+      <h3>Esta cuenta todavía no tiene órdenes</h3>
+      <p>Agregue productos a su carro y haga el checkout para generar la primera.</p>
+      {% if objeto.rol == "CLIENTE" %}
+        <a href="/panel/carros/?usuario={{ objeto.pk }}" class="btn btn-primary">
+          <i class="bi bi-cart-plus" aria-hidden="true"></i> Operar su carro
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

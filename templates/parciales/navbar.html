@@ -1,0 +1,50 @@
+{# ============================================================
+   parciales/navbar.html — BARRA DE NAVEGACIÓN
+   Responsabilidad: mostrar el nombre comercial con su ícono y los
+   accesos a los cuatro módulos del sitio.
+
+   El nombre comercial viene del context processor (del .env), y la
+   sección activa la calcula core.context_processors.navegacion, de
+   modo que la plantilla no compara URL a mano.
+   ============================================================ #}
+<nav class="navbar navbar-expand-lg navbar-hp sticky-top">
+  <div class="container">
+
+    {# ===== BLOQUE 1: MARCA ===== #}
+    <a class="navbar-brand" href="/">
+      <span class="marca-icono" aria-hidden="true"><i class="bi bi-cpu-fill"></i></span>
+      <span>{{ NOMBRE_COMERCIAL }}</span>
+    </a>
+
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+            data-bs-target="#menuPrincipal" aria-controls="menuPrincipal"
+            aria-expanded="false" aria-label="Mostrar u ocultar el menú">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    {# ===== BLOQUE 2: ENLACES DEL MENÚ ===== #}
+    <div class="collapse navbar-collapse" id="menuPrincipal">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+        {% for enlace in ENLACES_MENU %}
+          <li class="nav-item">
+            <a class="nav-link{% if SECCION_ACTUAL == enlace.clave %} activo{% endif %}"
+               href="{{ enlace.url }}"
+               {% if SECCION_ACTUAL == enlace.clave %}aria-current="page"{% endif %}>
+              <i class="bi {{ enlace.icono }}" aria-hidden="true"></i>
+              <span>{{ enlace.etiqueta }}</span>
+            </a>
+          </li>
+        {% endfor %}
+
+        {# Acceso directo a la API documentada #}
+        <li class="nav-item ms-lg-2">
+          <a class="btn btn-primary btn-sm" href="/api/docs/">
+            <i class="bi bi-braces" aria-hidden="true"></i>
+            <span>API</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</nav>

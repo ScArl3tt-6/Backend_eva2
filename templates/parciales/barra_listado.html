@@ -1,0 +1,66 @@
+{# ============================================================
+   parciales/barra_listado.html — BUSCADOR Y FILTRO DE ESTADO
+   Responsabilidad: la barra superior común a todos los listados de
+   gestión: buscador libre, filtro activos/inactivos/todos y, cuando
+   la vista lo entrega, un filtro por rol.
+
+   Se reutiliza en categorías, marcas, productos y usuarios, de modo
+   que los cuatro listados se manejen igual. Cada plantilla que la
+   incluye aporta "url_limpiar" y el texto del campo de búsqueda.
+   ============================================================ #}
+<form method="get" class="panel-filtros mb-4">
+  <div class="row g-3 align-items-end">
+
+    {# ===== BLOQUE 1: BUSCADOR ===== #}
+    <div class="col-12 {% if roles %}col-lg-4{% else %}col-lg-5{% endif %}">
+      <label class="form-label" for="buscar">Buscar</label>
+      <input type="search" class="form-control" id="buscar" name="buscar"
+             value="{{ texto_busqueda }}"
+             placeholder="{{ placeholder_busqueda|default:'Escriba para buscar' }}">
+    </div>
+
+    {# ===== BLOQUE 2: FILTRO POR ESTADO ===== #}
+    <div class="col-12 col-sm-6 col-lg-3">
+      <label class="form-label" for="estado">Estado</label>
+      <select class="form-select" id="estado" name="estado" data-enviar-al-cambiar="true">
+        <option value="activos" {% if estado_actual == "activos" %}selected{% endif %}>
+          Activos ({{ total_activos }})
+        </option>
+        <option value="inactivos" {% if estado_actual == "inactivos" %}selected{% endif %}>
+          Dados de baja ({{ total_inactivos }})
+        </option>
+        <option value="todos" {% if estado_actual == "todos" %}selected{% endif %}>
+          Todos
+        </option>
+      </select>
+    </div>
+
+    {# ===== BLOQUE 3: FILTRO POR ROL (solo en el listado de usuarios) ===== #}
+    {% if roles %}
+      <div class="col-12 col-sm-6 col-lg-2">
+        <label class="form-label" for="rol">Rol</label>
+        <select class="form-select" id="rol" name="rol" data-enviar-al-cambiar="true">
+          <option value="">Todos los roles</option>
+          {% for valor, etiqueta in roles %}
+            <option value="{{ valor }}" {% if rol_actual == valor %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+
+    {# ===== BLOQUE 4: BOTONES ===== #}
+    <div class="col-12 col-sm-6 col-lg-3">
+      <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search" aria-hidden="true"></i> Buscar
+        </button>
+        {% if texto_busqueda or estado_actual != "activos" or rol_actual %}
+          <a href="{{ url_limpiar }}" class="btn btn-light-hp">
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Limpiar
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</form>

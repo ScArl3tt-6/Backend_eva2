@@ -1,0 +1,128 @@
+{% extends "drf_spectacular/swagger_ui.html" %}
+{# ============================================================
+   drf_spectacular/swagger_ui_hardpoint.html — SWAGGER UI PROPIO
+   Responsabilidad: usar el Swagger UI de drf-spectacular añadiendo
+   el pie con los datos de la alumna y un enlace de vuelta al sitio.
+
+   Requisito de la pauta: el nombre, la sección y el año deben verse
+   en TODAS las pantallas, incluida la documentación de la API. Esta
+   plantilla extiende la de la biblioteca (por eso lleva otro
+   nombre: extender una plantilla con su mismo nombre provocaría una
+   recursión) y solo agrega contenido al bloque body.
+
+   Los datos llegan del context processor datos_alumno, igual que en
+   el resto del sitio; no están escritos a mano.
+   ============================================================ #}
+
+{% block head %}
+  {{ block.super }}
+  {# ===== BLOQUE 1: ESTILO DEL PIE Y DE LA BARRA SUPERIOR ===== #}
+  {# Solo el tema propio y los iconos: NO se carga Bootstrap completo,
+     para no alterar la apariencia del Swagger UI de la biblioteca. #}
+  <link rel="stylesheet" href="/static/css/tema.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    /* Reemplazo mínimo de las utilidades de Bootstrap que usa el pie. */
+    .container {
+      width: 100%;
+      max-width: 1320px;
+      margin-inline: auto;
+      padding-inline: 1rem;
+    }
+
+    .pie-hp .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .pie-hp .enlaces {
+      justify-content: flex-end;
+    }
+
+    .me-1 {
+      margin-right: 0.25rem;
+    }
+
+    .mt-1 {
+      margin-top: 0.25rem;
+    }
+
+    /* Barra superior propia, sobre el Swagger UI de la biblioteca. */
+    .barra-hardpoint {
+      background-color: var(--color-superficie);
+      border-bottom: 1px solid var(--color-borde);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-family: var(--tipografia);
+    }
+
+    .barra-hardpoint .titulo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      color: var(--color-texto);
+      text-decoration: none;
+    }
+
+    .barra-hardpoint .marca-icono {
+      width: 34px;
+      height: 34px;
+      font-size: 1rem;
+    }
+
+    .barra-hardpoint .accesos a {
+      color: var(--color-principal-fuerte);
+      font-size: 0.86rem;
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+
+    .barra-hardpoint .accesos a:hover {
+      text-decoration: underline;
+    }
+
+    /* El pie usa el mismo estilo que en el resto del sitio. */
+    .pie-hp {
+      font-family: var(--tipografia);
+    }
+
+    body {
+      background: var(--color-fondo);
+      display: block;
+    }
+
+    .swagger-ui .topbar {
+      display: none;
+    }
+  </style>
+{% endblock head %}
+
+{% block body %}
+  {# ===== BLOQUE 2: BARRA SUPERIOR CON VUELTA AL SITIO ===== #}
+  <header class="barra-hardpoint">
+    <a href="/" class="titulo">
+      <span class="marca-icono" aria-hidden="true"><i class="bi bi-cpu-fill"></i></span>
+      <span>{{ NOMBRE_COMERCIAL }} · API REST</span>
+    </a>
+    <nav class="accesos">
+      <a href="/">Inicio</a>
+      <a href="/documentacion/">Documentación</a>
+      <a href="/api/redoc/">ReDoc</a>
+      <a href="/api/schema/">Esquema OpenAPI</a>
+    </nav>
+  </header>
+
+  {# ===== BLOQUE 3: SWAGGER UI DE LA BIBLIOTECA ===== #}
+  {{ block.super }}
+
+  {# ===== BLOQUE 4: PIE CON LOS DATOS DE LA ALUMNA ===== #}
+  {% include "parciales/footer.html" %}
+{% endblock body %}

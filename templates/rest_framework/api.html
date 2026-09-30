@@ -1,0 +1,86 @@
+{% extends "rest_framework/base.html" %}
+{# ============================================================
+   rest_framework/api.html — BROWSABLE API DE DRF PERSONALIZADA
+   Responsabilidad: sobrescribir la plantilla de la API navegable de
+   Django REST Framework para que también muestre la marca del sitio
+   y el pie con los datos de la alumna.
+
+   Cómo funciona: DRF busca "rest_framework/api.html" y la carpeta
+   templates/ del proyecto va antes que las de las aplicaciones en
+   TEMPLATES["DIRS"], así que este archivo reemplaza el de la
+   biblioteca. Extiende "rest_framework/base.html" (otra plantilla,
+   no la misma) y solo cambia los bloques de marca y de guion final.
+
+   Requisito de la pauta: el nombre, la sección y el año deben
+   aparecer en TODAS las pantallas, incluida esta. Los datos llegan
+   del context processor datos_alumno, nunca escritos a mano.
+   ============================================================ #}
+
+{% block bootstrap_navbar_variant %}navbar-default{% endblock %}
+
+{# ===== BLOQUE 1: MARCA EN LA BARRA SUPERIOR ===== #}
+{% block branding %}
+  <a class="navbar-brand" href="/" rel="nofollow">
+    {{ NOMBRE_COMERCIAL }} · API REST
+  </a>
+{% endblock %}
+
+{# ===== BLOQUE 2: ENLACES DE VUELTA AL SITIO ===== #}
+{% block userlinks %}
+  <ul class="nav navbar-nav navbar-right">
+    <li><a href="/documentacion/">Documentación</a></li>
+    <li><a href="/api/docs/">Swagger UI</a></li>
+    <li><a href="/">Inicio</a></li>
+  </ul>
+{% endblock %}
+
+{# ===== BLOQUE 3: ESTILO DEL PIE ===== #}
+{% block style %}
+  {{ block.super }}
+  <style>
+    /* El pie usa la paleta del proyecto, sin depender de tema.css,
+       para no interferir con el Bootstrap 3 que trae DRF. */
+    .pie-alumna {
+      border-top: 1px solid #e0e5f4;
+      background-color: #ffffff;
+      padding: 18px 0;
+      margin-top: 24px;
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+      font-size: 13px;
+      color: #6a7194;
+      text-align: center;
+    }
+
+    .pie-alumna strong {
+      color: #2e3350;
+    }
+
+    .pie-alumna a {
+      color: #3a4eae;
+      margin: 0 8px;
+      text-decoration: none;
+    }
+
+    .pie-alumna a:hover {
+      text-decoration: underline;
+    }
+  </style>
+{% endblock %}
+
+{# ===== BLOQUE 4: PIE CON LOS DATOS DE LA ALUMNA ===== #}
+{% block script %}
+  <footer class="pie-alumna">
+    <p style="margin-bottom: 6px;">
+      <strong>{{ ALUMNO_NOMBRE }}</strong> · Sección {{ ALUMNO_SECCION }} · {{ ALUMNO_ANIO }}
+    </p>
+    <p style="margin-bottom: 6px;">
+      {{ NOMBRE_COMERCIAL }} · Desarrollo Backend · Evaluación EVA-2
+    </p>
+    <p style="margin-bottom: 0;">
+      <a href="/documentacion/">Documentación</a>
+      <a href="/api/docs/">API (Swagger)</a>
+      <a href="/api/redoc/">ReDoc</a>
+    </p>
+  </footer>
+  {{ block.super }}
+{% endblock %}

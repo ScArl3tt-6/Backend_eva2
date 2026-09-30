@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/panel_productos.html — LISTADO DE GESTIÓN DE PRODUCTOS
+   Responsabilidad: listar los componentes con buscador, filtro de
+   estado y paginación, mostrando el SKU, la categoría, la marca, el
+   precio y el stock, y ofreciendo ver, editar, dar de baja y
+   reactivar.
+
+   El stock se muestra con color según su nivel, para detectar de un
+   vistazo los productos agotados o con últimas unidades, que son los
+   que provocan el rechazo 409 al intentar pagar.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    Componentes del catálogo con su precio y su stock físico.
+    {{ total_activos }} activo(s) y {{ total_inactivos }} dado(s) de baja.
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: BUSCADOR Y BOTÓN DE CREACIÓN ===== #}
+{% include "parciales/barra_listado.html" with url_limpiar="/panel/productos/" placeholder_busqueda="Nombre, SKU, descripción o marca" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <p class="texto-suave mb-0">{{ total_resultados }} resultado(s)</p>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="/catalogo/" class="btn btn-light-hp">
+      <i class="bi bi-grid" aria-hidden="true"></i> Ver el catálogo público
+    </a>
+    <a href="/panel/productos/nuevo/" class="btn btn-primary">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+    </a>
+  </div>
+</div>
+
+{# ===== BLOQUE 2: TABLA ===== #}
+{% if pagina.object_list %}
+  <div class="tarjeta">
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Producto</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Marca</th>
+            <th scope="col" class="numerico">Precio</th>
+            <th scope="col" class="numerico">Stock</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for producto in pagina.object_list %}
+            <tr {% if not producto.activo %}class="fila-inactiva"{% endif %}>
+              <td><span class="codigo-sku">{{ producto.sku }}</span></td>
+              <td>
+                <a href="/panel/productos/{{ producto.pk }}/">
+                  <strong>{{ producto.nombre|truncatechars:52 }}</strong>
+                </a>
+              </td>
+              <td class="texto-suave texto-chico">
+                <i class="bi {{ producto.categoria.icono|default:"bi-box" }}" aria-hidden="true"></i>
+                {{ producto.categoria.nombre }}
+              </td>
+              <td class="texto-suave texto-chico">{{ producto.marca.nombre }}</td>
+              <td class="numerico"><span class="precio">{{ producto.precio|clp }}</span></td>
+              <td class="numerico">
+                {% if producto.stock == 0 %}
+                  <span class="stock-agotado">0</span>
+                {% elif producto.stock <= 5 %}
+                  <span class="stock-bajo">{{ producto.stock }}</span>
+                {% else %}
+                  <span class="stock-disponible">{{ producto.stock|miles }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if producto.activo %}
+                  <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activo</span>
+                {% else %}
+                  <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> De baja</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <a href="/panel/productos/{{ producto.pk }}/" class="btn btn-light-hp btn-sm" title="Ver la ficha">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </a>
+                  <a href="/panel/productos/{{ producto.pk }}/editar/" class="btn btn-light-hp btn-sm" title="Editar">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                  </a>
+                  {% if producto.activo %}
+                    <a href="/panel/productos/{{ producto.pk }}/desactivar/" class="btn btn-light-hp btn-sm" title="Dar de baja">
+                      <i class="bi bi-slash-circle" aria-hidden="true"></i>
+                    </a>
+                  {% else %}
+                    <form method="post" action="/panel/productos/{{ producto.pk }}/reactivar/" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-light-hp btn-sm" title="Reactivar">
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include "parciales/paginacion.html" %}
+
+{% else %}
+  {# ===== BLOQUE 3: ESTADO VACÍO ===== #}
+  <div class="tarjeta">
+    <div class="estado-vacio">
+      <i class="bi bi-cpu icono" aria-hidden="true"></i>
+      <h3>No hay productos que coincidan</h3>
+      <p>
+        Cree el primer componente del catálogo, o cargue los datos de prueba con
+        <code>python manage.py seed_data</code>.
+      </p>
+      <a href="/panel/productos/nuevo/" class="btn btn-primary">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   core/inicio.html — PORTADA DEL SITIO
+   Responsabilidad: presentar la tienda, mostrar estadísticas
+   REALES calculadas contra PostgreSQL, los productos destacados y
+   los accesos rápidos a cada módulo.
+
+   Todas las cifras vienen de core.views.inicio, que las consulta
+   con el ORM; ninguna está escrita a mano en la plantilla.
+   ============================================================ #}
+
+{% block titulo %}{{ NOMBRE_COMERCIAL }} · Componentes informáticos{% endblock %}
+
+{% block encabezado %}{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: BIENVENIDA ===== #}
+<section class="portada mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-8 position-relative">
+      <h1>{{ NOMBRE_COMERCIAL }}</h1>
+      <p class="lead mb-4">
+        Tienda especializada en componentes informáticos: procesadores, tarjetas de
+        video, memorias RAM, placas madre, almacenamiento y fuentes de poder.
+        Catálogo administrado, carro de compras persistente y control de stock con
+        verificación atómica al momento del pago.
+      </p>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="/catalogo/" class="btn btn-light-hp">
+          <i class="bi bi-grid" aria-hidden="true"></i> Ver el catálogo
+        </a>
+        <a href="/panel/" class="btn btn-contorno-claro">
+          <i class="bi bi-sliders" aria-hidden="true"></i> Panel de gestión
+        </a>
+        <a href="/documentacion/" class="btn btn-contorno-claro">
+          <i class="bi bi-book" aria-hidden="true"></i> Documentación
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===== BLOQUE 2: ESTADÍSTICAS REALES ===== #}
+<section class="mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-lg-3">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo" aria-hidden="true"><i class="bi bi-cpu"></i></span>
+          <div>
+            <p class="cifra">{{ estadisticas.productos|miles }}</p>
+            <p class="rotulo">Productos publicados</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo secundario" aria-hidden="true"><i class="bi bi-tags"></i></span>
+          <div>
+            <p class="cifra">{{ estadisticas.categorias|miles }}</p>
+            <p class="rotulo">Categorías</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo acento" aria-hidden="true"><i class="bi bi-award"></i></span>
+          <div>
+            <p class="cifra">{{ estadisticas.marcas|miles }}</p>
+            <p class="rotulo">Marcas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="tarjeta h-100">
+        <div class="tarjeta-cuerpo estadistica">
+          <span class="icono-modulo" aria-hidden="true"><i class="bi bi-box-seam"></i></span>
+          <div>
+            <p class="cifra">{{ estadisticas.unidades_en_bodega|miles }}</p>
+            <p class="rotulo">Unidades en bodega</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===== BLOQUE 3: ÓRDENES POR ESTADO ===== #}
+<section class="mb-4">
+  <div class="tarjeta">
+    <div class="tarjeta-cabecera">
+      <h2><i class="bi bi-receipt" aria-hidden="true"></i> Órdenes por estado</h2>
+      <a href="/panel/ordenes/" class="btn btn-outline-primary btn-sm">
+        Ver todas <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+    <div class="tarjeta-cuerpo">
+      <div class="row g-3">
+        {% for fila in ordenes_por_estado %}
+          <div class="col-6 col-lg-3">
+            <div class="text-center p-3 caja-estado">
+              <span class="badge-hp {{ fila.estado|clase_estado }} mb-2">
+                <i class="bi {{ fila.estado|icono_estado }}" aria-hidden="true"></i> {{ fila.etiqueta }}
+              </span>
+              <p class="cifra mb-0">{{ fila.total|miles }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="texto-tenue mb-0 mt-3 texto-chico">
+        Total de órdenes registradas: {{ estadisticas.ordenes_total|miles }} ·
+        Clientes activos: {{ estadisticas.clientes|miles }}
+      </p>
+    </div>
+  </div>
+</section>
+
+{# ===== BLOQUE 4: PRODUCTOS DESTACADOS ===== #}
+<section class="mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h2 class="h5 mb-0"><i class="bi bi-stars me-1" aria-hidden="true"></i> Productos destacados</h2>
+    <a href="/catalogo/" class="btn btn-outline-primary btn-sm">
+      Ver el catálogo completo <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {% if productos_destacados %}
+    <div class="row g-3">
+      {% for producto in productos_destacados %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <a href="/catalogo/{{ producto.pk }}/" class="tarjeta-enlace">
+            <article class="tarjeta tarjeta-producto">
+              <div class="cuerpo">
+                <span class="etiqueta-categoria">
+                  <i class="bi {{ producto.categoria.icono|default:"bi-box" }}" aria-hidden="true"></i>
+                  {{ producto.categoria.nombre }}
+                </span>
+                <h3 class="nombre">{{ producto.nombre }}</h3>
+                <p class="texto-suave mb-0 texto-chico">
+                  {{ producto.marca.nombre }} · <span class="codigo-sku">{{ producto.sku }}</span>
+                </p>
+              </div>
+              <div class="pie">
+                <span class="precio">{{ producto.precio|clp }}</span>
+                {% if producto.stock > 5 %}
+                  <span class="stock-disponible"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ producto.stock }} en stock</span>
+                {% else %}
+                  <span class="stock-bajo"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ producto.stock }} restante(s)</span>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="tarjeta">
+      <div class="estado-vacio">
+        <i class="bi bi-inbox icono" aria-hidden="true"></i>
+        <h3>Todavía no hay productos con stock</h3>
+        <p>
+          Cargue los datos de prueba con <code>python manage.py seed_data</code> o
+          cree un producto desde el panel de gestión.
+        </p>
+        <a href="/panel/productos/nuevo/" class="btn btn-primary">
+          <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear un producto
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+{# ===== BLOQUE 5: ACCESOS RÁPIDOS ===== #}
+<section>
+  <h2 class="h5 mb-3"><i class="bi bi-lightning-charge me-1" aria-hidden="true"></i> Accesos rápidos</h2>
+  <div class="row g-3">
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="/catalogo/" class="tarjeta-enlace">
+        <div class="tarjeta h-100">
+          <div class="tarjeta-cuerpo">
+            <span class="icono-modulo mb-3" aria-hidden="true"><i class="bi bi-grid"></i></span>
+            <h3 class="h6">Catálogo</h3>
+            <p class="texto-suave mb-0 texto-chico">
+              Explore los componentes con filtros por categoría, marca, precio y stock.
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="/panel/carros/" class="tarjeta-enlace">
+        <div class="tarjeta h-100">
+          <div class="tarjeta-cuerpo">
+            <span class="icono-modulo secundario mb-3" aria-hidden="true"><i class="bi bi-cart3"></i></span>
+            <h3 class="h6">Carros de compras</h3>
+            <p class="texto-suave mb-0 texto-chico">
+              Revise el carro persistido de cada cliente y genere su orden.
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="/panel/ordenes/" class="tarjeta-enlace">
+        <div class="tarjeta h-100">
+          <div class="tarjeta-cuerpo">
+            <span class="icono-modulo acento mb-3" aria-hidden="true"><i class="bi bi-receipt"></i></span>
+            <h3 class="h6">Órdenes</h3>
+            <p class="texto-suave mb-0 texto-chico">
+              Pague, entregue o cancele órdenes con control atómico de stock.
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <a href="/api/docs/" class="tarjeta-enlace">
+        <div class="tarjeta h-100">
+          <div class="tarjeta-cuerpo">
+            <span class="icono-modulo mb-3" aria-hidden="true"><i class="bi bi-braces"></i></span>
+            <h3 class="h6">API documentada</h3>
+            <p class="texto-suave mb-0 texto-chico">
+              Pruebe la API REST con JWT desde Swagger UI, con ejemplos listos.
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

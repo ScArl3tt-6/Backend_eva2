@@ -1,0 +1,55 @@
+{# ============================================================
+   parciales/paginacion.html — PAGINACIÓN REUTILIZABLE
+   Responsabilidad: navegar entre las páginas de cualquier listado
+   conservando los filtros elegidos.
+
+   La variable "parametros" que entrega la vista es la cadena de
+   consulta actual sin el parámetro page; al concatenarle
+   &page=N los filtros de búsqueda no se pierden al cambiar de
+   página.
+   ============================================================ #}
+{% if pagina.paginator.num_pages > 1 %}
+  <nav aria-label="Paginación de resultados" class="mt-3">
+    <ul class="pagination paginacion-hp justify-content-center flex-wrap mb-0">
+
+      {# ===== BLOQUE 1: PÁGINA ANTERIOR ===== #}
+      <li class="page-item {% if not pagina.has_previous %}disabled{% endif %}">
+        {% if pagina.has_previous %}
+          <a class="page-link" href="?{% if parametros %}{{ parametros }}&{% endif %}page={{ pagina.previous_page_number }}" aria-label="Página anterior">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </a>
+        {% else %}
+          <span class="page-link"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
+        {% endif %}
+      </li>
+
+      {# ===== BLOQUE 2: NÚMEROS DE PÁGINA ===== #}
+      {% for numero in pagina.paginator.page_range %}
+        {% if numero == pagina.number %}
+          <li class="page-item active" aria-current="page">
+            <span class="page-link">{{ numero }}</span>
+          </li>
+        {% elif numero > pagina.number|add:"-3" and numero < pagina.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if parametros %}{{ parametros }}&{% endif %}page={{ numero }}">{{ numero }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {# ===== BLOQUE 3: PÁGINA SIGUIENTE ===== #}
+      <li class="page-item {% if not pagina.has_next %}disabled{% endif %}">
+        {% if pagina.has_next %}
+          <a class="page-link" href="?{% if parametros %}{{ parametros }}&{% endif %}page={{ pagina.next_page_number }}" aria-label="Página siguiente">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        {% else %}
+          <span class="page-link"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+        {% endif %}
+      </li>
+
+    </ul>
+    <p class="text-center texto-tenue mt-2 mb-0" style="font-size: 0.84rem;">
+      Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} · {{ pagina.paginator.count }} registro(s)
+    </p>
+  </nav>
+{% endif %}

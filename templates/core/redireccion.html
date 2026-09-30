@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{# ============================================================
+   core/redireccion.html — PANTALLA DE REDIRECCIÓN
+   Responsabilidad: atender cualquier dirección inexistente con la
+   misma estética del sitio, en lugar de mostrar el 404 de Django.
+
+   Requisito crítico de la pauta: ninguna dirección debe mostrar un
+   error. Esta pantalla la sirven las tres capas de protección:
+     · el catch-all re_path del final de tienda_hardware/urls.py,
+     · el handler404 (con DEBUG = False),
+     · el middleware RedireccionNoEncontradaMiddleware.
+
+   Vuelve al inicio por dos vías independientes:
+     1) la etiqueta <meta http-equiv="refresh">, que funciona
+        incluso sin JavaScript;
+     2) el temporizador de static/js/app.js, que además muestra la
+        cuenta regresiva en pantalla.
+   Y siempre queda el botón «Volver al inicio» para no esperar.
+   ============================================================ #}
+
+{% block titulo %}Página no encontrada · {{ NOMBRE_COMERCIAL }}{% endblock %}
+
+{% block estilos_extra %}
+  {# ===== BLOQUE 1: REDIRECCIÓN SIN JAVASCRIPT ===== #}
+  <meta http-equiv="refresh" content="{{ segundos_espera }};url=/">
+{% endblock %}
+
+{% block encabezado %}{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="tarjeta">
+      <div class="caja-redireccion">
+
+        {# ===== BLOQUE 2: AVISO ===== #}
+        <span class="icono-grande" aria-hidden="true"><i class="bi bi-compass"></i></span>
+
+        <h1 class="h3 mb-2">La página que buscas no existe</h1>
+        <p class="texto-suave mb-3">
+          La dirección solicitada no corresponde a ninguna sección de
+          {{ NOMBRE_COMERCIAL }}. Puede que el enlace esté mal escrito o que la
+          página haya cambiado de lugar.
+        </p>
+
+        {# ===== BLOQUE 3: RUTA SOLICITADA ===== #}
+        <p class="mb-4">
+          <span class="dato-etiqueta d-block mb-2">Ruta solicitada</span>
+          <span class="ruta-solicitada">{{ ruta_solicitada }}</span>
+        </p>
+
+        {# ===== BLOQUE 4: CUENTA REGRESIVA ===== #}
+        <p class="texto-suave mb-4">
+          Le llevamos al inicio en
+          <span class="cuenta-regresiva" id="cuenta-regresiva"
+                data-segundos="{{ segundos_espera }}" data-destino="/">{{ segundos_espera }}</span>
+          segundo(s).
+        </p>
+
+        {# ===== BLOQUE 5: ACCIONES ===== #}
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+          <a href="/" class="btn btn-primary">
+            <i class="bi bi-house-door" aria-hidden="true"></i> Volver al inicio
+          </a>
+          <a href="/catalogo/" class="btn btn-light-hp">
+            <i class="bi bi-grid" aria-hidden="true"></i> Ir al catálogo
+          </a>
+          <a href="/documentacion/" class="btn btn-light-hp">
+            <i class="bi bi-book" aria-hidden="true"></i> Documentación
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{# ============================================================
+   parciales/migas.html — MIGAS DE PAN
+   Responsabilidad: mostrar el camino de navegación de la pantalla
+   actual, para que se sepa siempre dónde se está y cómo volver.
+
+   Cada vista entrega la lista "migas" con elementos que tienen
+   etiqueta y url; la última lleva url = None y se muestra como
+   posición actual, sin enlace.
+   ============================================================ #}
+{% if migas %}
+  <nav class="migas" aria-label="Camino de navegación">
+    <a href="/"><i class="bi bi-house-door" aria-hidden="true"></i> Inicio</a>
+    {% for miga in migas %}
+      <span class="separador" aria-hidden="true">/</span>
+      {% if miga.url %}
+        <a href="{{ miga.url }}">{{ miga.etiqueta }}</a>
+      {% else %}
+        <span class="actual" aria-current="page">{{ miga.etiqueta }}</span>
+      {% endif %}
+    {% endfor %}
+  </nav>
+{% endif %}

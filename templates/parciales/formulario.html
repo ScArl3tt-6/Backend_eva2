@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{# ============================================================
+   parciales/formulario.html — FORMULARIO GENÉRICO DE GESTIÓN
+   Responsabilidad: dibujar cualquier ModelForm del panel
+   (categorías, marcas, productos y usuarios) con el mismo aspecto.
+
+   Por qué una sola plantilla: las cuatro entidades comparten la
+   misma presentación (etiqueta, campo, ayuda y errores por campo).
+   Reutilizarla evita cuatro archivos casi idénticos y garantiza
+   que los formularios se vean y se comporten igual.
+
+   Los errores se muestran en dos niveles: los generales del
+   formulario arriba, y los de cada campo justo bajo su control.
+   ============================================================ #}
+
+{% block contenido %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="tarjeta">
+
+      {# ===== BLOQUE 1: CABECERA ===== #}
+      <div class="tarjeta-cabecera">
+        <h2>
+          <span class="icono-modulo" aria-hidden="true"><i class="bi {{ icono|default:'bi-pencil-square' }}"></i></span>
+          {{ titulo_pagina }}
+        </h2>
+        {% if objeto %}
+          <span class="badge-hp {% if objeto.activo or objeto.is_active %}badge-activo{% else %}badge-inactivo{% endif %}">
+            <i class="bi {% if objeto.activo or objeto.is_active %}bi-check-circle{% else %}bi-slash-circle{% endif %}" aria-hidden="true"></i>
+            {% if objeto.activo or objeto.is_active %}Activo{% else %}Dado de baja{% endif %}
+          </span>
+        {% endif %}
+      </div>
+
+      {# ===== BLOQUE 2: CUERPO DEL FORMULARIO ===== #}
+      <div class="tarjeta-cuerpo">
+        {% if descripcion_formulario %}
+          <p class="texto-suave">{{ descripcion_formulario }}</p>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {# Errores que no corresponden a un campo concreto #}
+          {% if formulario.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              <i class="bi bi-exclamation-octagon-fill flex-shrink-0 mt-1" aria-hidden="true"></i>
+              <div>
+                {% for error in formulario.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          {# Campo por campo, con su etiqueta, su ayuda y sus errores #}
+          {% for campo in formulario %}
+            <div class="mb-3 {% if campo.errors %}campo-con-error{% endif %}">
+              {% if campo.field.widget.input_type == 'checkbox' %}
+                <div class="form-check">
+                  {{ campo }}
+                  <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                </div>
+              {% else %}
+                <label class="form-label" for="{{ campo.id_for_label }}">
+                  {{ campo.label }}
+                  {% if campo.field.required %}<span class="text-danger" aria-hidden="true">*</span>{% endif %}
+                </label>
+                {{ campo }}
+              {% endif %}
+
+              {% if campo.help_text %}
+                <div class="form-text">{{ campo.help_text }}</div>
+              {% endif %}
+
+              {% for error in campo.errors %}
+                <div class="error-campo">
+                  <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                  <span>{{ error }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+
+          <p class="texto-tenue" style="font-size: 0.82rem;">
+            Los campos marcados con <span class="text-danger">*</span> son obligatorios.
+          </p>
+
+          {# ===== BLOQUE 3: BOTONES ===== #}
+          <hr class="separador-suave">
+          <div class="d-flex flex-wrap gap-2 justify-content-end">
+            <a href="{{ url_cancelar }}" class="btn btn-light-hp">
+              <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg" aria-hidden="true"></i> {{ texto_boton|default:"Guardar" }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

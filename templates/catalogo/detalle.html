@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/detalle.html — FICHA PÚBLICA DEL COMPONENTE
+   Responsabilidad: mostrar todos los datos del producto: SKU,
+   marca, categoría, precio, stock, disponibilidad y descripción
+   técnica, además de otros componentes de la misma categoría.
+   ============================================================ #}
+
+{% block titulo %}{{ producto.nombre }} · {{ NOMBRE_COMERCIAL }}{% endblock %}
+{% block descripcion %}{{ producto.nombre }} — {{ producto.marca.nombre }}. {{ producto.descripcion|truncatechars:140 }}{% endblock %}
+
+{% block encabezado %}{% endblock %}
+
+{% block contenido %}
+
+<div class="row g-4">
+
+  {# ===== BLOQUE 1: DATOS PRINCIPALES ===== #}
+  <div class="col-lg-8">
+    <div class="tarjeta">
+      <div class="tarjeta-cuerpo">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="etiqueta-categoria">
+            <i class="bi {{ producto.categoria.icono|default:"bi-box" }}" aria-hidden="true"></i>
+            {{ producto.categoria.nombre }}
+          </span>
+          <span class="badge-hp badge-neutro">
+            <i class="bi bi-award" aria-hidden="true"></i> {{ producto.marca.nombre }}
+          </span>
+          {% if not producto.activo %}
+            <span class="badge-hp badge-inactivo">
+              <i class="bi bi-slash-circle" aria-hidden="true"></i> Dado de baja
+            </span>
+          {% endif %}
+        </div>
+
+        <h1 class="h3 mb-2">{{ producto.nombre }}</h1>
+        <p class="mb-4"><span class="codigo-sku">SKU {{ producto.sku }}</span></p>
+
+        <h2 class="h6">Descripción técnica</h2>
+        {% if producto.descripcion %}
+          <p class="texto-suave mb-0">{{ producto.descripcion|linebreaksbr }}</p>
+        {% else %}
+          <p class="texto-tenue mb-0">Este componente todavía no tiene una descripción registrada.</p>
+        {% endif %}
+      </div>
+
+      {# ===== BLOQUE 2: TABLA DE ESPECIFICACIONES ===== #}
+      <div class="tarjeta-cuerpo border-top">
+        <h2 class="h6 mb-3">Ficha del producto</h2>
+        <div class="row g-3">
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Código SKU</p>
+            <p class="dato-valor">{{ producto.sku }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Marca</p>
+            <p class="dato-valor">{{ producto.marca.nombre }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Categoría</p>
+            <p class="dato-valor">{{ producto.categoria.nombre }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">País de la marca</p>
+            <p class="dato-valor">{{ producto.marca.pais_origen|default:"No registrado" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Stock físico</p>
+            <p class="dato-valor">{{ producto.stock|miles }} unidad(es)</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Estado del stock</p>
+            <p class="dato-valor">{{ producto.estado_stock }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Publicado el</p>
+            <p class="dato-valor">{{ producto.creado_en|date:"d/m/Y" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Última actualización</p>
+            <p class="dato-valor">{{ producto.actualizado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 3: PRECIO Y DISPONIBILIDAD ===== #}
+  <div class="col-lg-4">
+    <div class="tarjeta mb-3">
+      <div class="tarjeta-cuerpo">
+        <p class="dato-etiqueta">Precio unitario</p>
+        <p class="precio-grande mb-3">{{ producto.precio|clp }}</p>
+
+        {% if producto.disponible %}
+          {% if producto.stock <= 5 %}
+            <p class="stock-bajo mb-3">
+              <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+              Últimas {{ producto.stock }} unidad(es) disponibles
+            </p>
+          {% else %}
+            <p class="stock-disponible mb-3">
+              <i class="bi bi-check-circle" aria-hidden="true"></i>
+              Disponible: {{ producto.stock|miles }} unidad(es)
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="stock-agotado mb-3">
+            <i class="bi bi-x-circle" aria-hidden="true"></i>
+            {% if producto.activo %}Sin stock por ahora{% else %}Producto dado de baja{% endif %}
+          </p>
+        {% endif %}
+
+        <div class="caja-aviso mb-3">
+          <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+          Para comprar, un cliente agrega este componente a su carro con
+          <code>POST /api/carro/</code>. El stock se descuenta recién al pagar la orden.
+        </div>
+
+        <div class="d-grid gap-2">
+          <a href="/panel/carros/" class="btn btn-primary">
+            <i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar a un carro
+          </a>
+          <a href="/catalogo/" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al catálogo
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cuerpo">
+        <p class="dato-etiqueta mb-2">Gestión</p>
+        <div class="d-grid gap-2">
+          <a href="/panel/productos/{{ producto.pk }}/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Ver en el panel
+          </a>
+          <a href="/api/productos/{{ producto.pk }}/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-braces" aria-hidden="true"></i> Ver en la API
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ===== BLOQUE 4: COMPONENTES RELACIONADOS ===== #}
+{% if relacionados %}
+  <section class="mt-4">
+    <h2 class="h5 mb-3">
+      <i class="bi bi-collection me-1" aria-hidden="true"></i>
+      Otros componentes de {{ producto.categoria.nombre }}
+    </h2>
+    <div class="row g-3">
+      {% for otro in relacionados %}
+        <div class="col-12 col-md-6 col-lg-3">
+          <a href="/catalogo/{{ otro.pk }}/" class="tarjeta-enlace">
+            <article class="tarjeta tarjeta-producto">
+              <div class="cuerpo">
+                <h3 class="nombre">{{ otro.nombre|truncatechars:56 }}</h3>
+                <p class="texto-suave mb-0 texto-mini">{{ otro.marca.nombre }}</p>
+              </div>
+              <div class="pie">
+                <span class="precio">{{ otro.precio|clp }}</span>
+                {% if otro.stock > 0 %}
+                  <span class="stock-disponible texto-mini">{{ otro.stock }} en stock</span>
+                {% else %}
+                  <span class="stock-agotado texto-mini">Sin stock</span>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
+{% endblock %}

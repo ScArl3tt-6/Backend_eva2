@@ -1,0 +1,26 @@
+{# ============================================================
+   parciales/mensajes.html — MENSAJES FLASH
+   Responsabilidad: mostrar los avisos de django.contrib.messages
+   con las clases de Bootstrap.
+
+   La correspondencia nivel → clase se define en MESSAGE_TAGS de
+   settings.py, así que aquí basta con usar message.tags.
+
+   Los avisos de éxito e información se cierran solos a los ocho
+   segundos (data-autocerrar, en static/js/app.js). Los de error y
+   advertencia permanecen, porque suelen explicar algo que hay que
+   leer con calma, como qué producto quedó sin stock al pagar.
+   ============================================================ #}
+{% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
+           role="alert"
+           {% if message.tags == 'success' or message.tags == 'info' %}data-autocerrar="true"{% endif %}>
+        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'danger' %}bi-exclamation-octagon-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+        <div class="flex-grow-1">{{ message }}</div>
+        <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Cerrar el aviso"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

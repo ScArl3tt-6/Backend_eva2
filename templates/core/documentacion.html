@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{# ============================================================
+   core/documentacion.html — GUÍA DEL SISTEMA
+   Responsabilidad: explicar en una sola pantalla el propósito del
+   proyecto, su modelo de datos, la matriz de roles, el flujo de
+   negocio, las credenciales de prueba y el paso a paso para probar
+   la API desde Swagger.
+
+   Todo el contenido llega desde core.views.documentacion, para que
+   la plantilla se limite a presentar.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    Guía completa de {{ NOMBRE_COMERCIAL }}: qué hace el sistema, cómo está
+    modelada la base de datos, qué puede hacer cada rol y cómo probar la API REST
+    paso a paso.
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: ACCESOS A LA API ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cuerpo">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h2 class="h6 mb-1"><i class="bi bi-braces me-1" aria-hidden="true"></i> Documentación interactiva de la API</h2>
+        <p class="texto-suave mb-0 texto-chico">
+          El esquema OpenAPI 3 se genera con drf-spectacular a partir del código, así
+          que siempre corresponde a lo que la API hace de verdad. Desde Swagger UI se
+          puede autenticar con JWT y ejecutar cada endpoint.
+        </p>
+      </div>
+      <div class="col-lg-4">
+        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+          <a href="/api/docs/" class="btn btn-primary">
+            <i class="bi bi-play-circle" aria-hidden="true"></i> Swagger UI
+          </a>
+          <a href="/api/redoc/" class="btn btn-outline-primary">
+            <i class="bi bi-journal-code" aria-hidden="true"></i> ReDoc
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== BLOQUE 2: PROPÓSITO DEL SISTEMA ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-bullseye" aria-hidden="true"></i> Propósito del sistema</h2>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <p>
+      {{ NOMBRE_COMERCIAL }} es un e-commerce especializado en componentes
+      informáticos. Trabajan dos roles: el <strong>Cliente</strong>, que explora el
+      catálogo y compra, y el <strong>Administrador de TI</strong>, que gestiona las
+      categorías, las marcas, los productos y el ciclo de vida de las órdenes.
+    </p>
+    <p class="mb-0">
+      La pieza delicada del negocio es el <strong>control de stock</strong>. Agregar
+      al carro y hacer el checkout no descuentan unidades: solo el pago lo hace, y lo
+      hace dentro de una transacción con las filas de los productos bloqueadas en la
+      base de datos. Por eso, si dos clientes intentan pagar el último producto casi a
+      la vez, uno paga y el otro recibe un rechazo explicado, y el stock nunca queda
+      en negativo.
+    </p>
+  </div>
+</div>
+
+{# ===== BLOQUE 3: MATRIZ DE ROLES Y PERMISOS ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-shield-check" aria-hidden="true"></i> Matriz de roles y permisos</h2>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <div class="row g-3">
+      {% for fila in matriz_roles %}
+        <div class="col-12 col-lg-4">
+          <div class="h-100 p-3 caja-estado">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="icono-modulo {% if fila.rol == 'CLIENTE' %}secundario{% elif fila.rol == 'ADMINISTRADOR' %}acento{% endif %}" aria-hidden="true">
+                <i class="bi {{ fila.icono }}"></i>
+              </span>
+              <div>
+                <h3 class="h6 mb-0">{{ fila.rol }}</h3>
+                <p class="texto-suave mb-0 texto-mini">{{ fila.descripcion }}</p>
+              </div>
+            </div>
+            <ul class="lista-limpia">
+              {% for endpoint in fila.endpoints %}
+                <li class="mb-1"><code class="codigo-sku">{{ endpoint }}</code></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="caja-aviso mt-3">
+      <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+      Sin token, la API responde <strong>401</strong>. Con un token cuyo rol no
+      corresponde, responde <strong>403</strong>. El rol viaja firmado dentro del
+      token JWT como el claim <code>rol</code>.
+    </div>
+  </div>
+</div>
+
+{# ===== BLOQUE 4: FLUJO DE NEGOCIO ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> Flujo: carro → orden → pago → entrega o cancelación</h2>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <div class="row g-3">
+      {% for etapa in flujo %}
+        <div class="col-12 col-lg-6">
+          <div class="d-flex gap-3 h-100 p-3 caja-estado">
+            <span class="icono-modulo {% cycle '' 'secundario' 'acento' '' as ciclo_etapa silent %}{{ ciclo_etapa }}" aria-hidden="true">
+              <i class="bi {{ etapa.icono }}"></i>
+            </span>
+            <div>
+              <h3 class="h6 mb-1">{{ etapa.paso }}. {{ etapa.titulo }}</h3>
+              <p class="texto-suave mb-0 texto-chico">{{ etapa.detalle }}</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <h3 class="h6 mt-4 mb-2">Transiciones permitidas</h3>
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Desde</th>
+            <th scope="col">Hacia</th>
+            <th scope="col">Efecto sobre el stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge-hp estado-pendiente"><i class="bi bi-hourglass-split" aria-hidden="true"></i> PENDIENTE</span></td>
+            <td><span class="badge-hp estado-pagado"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i> PAGADO</span></td>
+            <td>Verifica y <strong>descuenta</strong> el stock de forma atómica.</td>
+          </tr>
+          <tr>
+            <td><span class="badge-hp estado-pendiente"><i class="bi bi-hourglass-split" aria-hidden="true"></i> PENDIENTE</span></td>
+            <td><span class="badge-hp estado-cancelado"><i class="bi bi-x-circle" aria-hidden="true"></i> CANCELADO</span></td>
+            <td>No hay stock que reponer: nunca se descontó.</td>
+          </tr>
+          <tr>
+            <td><span class="badge-hp estado-pagado"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i> PAGADO</span></td>
+            <td><span class="badge-hp estado-entregado"><i class="bi bi-box-seam" aria-hidden="true"></i> ENTREGADO</span></td>
+            <td>Sin cambios: la venta se cierra.</td>
+          </tr>
+          <tr>
+            <td><span class="badge-hp estado-pagado"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i> PAGADO</span></td>
+            <td><span class="badge-hp estado-cancelado"><i class="bi bi-x-circle" aria-hidden="true"></i> CANCELADO</span></td>
+            <td><strong>Repone</strong> automáticamente el stock.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="texto-suave texto-chico mt-3 mb-0">
+      <span class="badge-hp estado-entregado">ENTREGADO</span> y
+      <span class="badge-hp estado-cancelado">CANCELADO</span> son estados finales:
+      cualquier intento de moverlos responde <strong>400</strong> con el detalle de
+      las transiciones que sí serían posibles. Cada cambio queda registrado en el
+      historial de la orden.
+    </p>
+  </div>
+</div>
+
+{# ===== BLOQUE 5: MODELO DE DATOS ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-database" aria-hidden="true"></i> Modelo de datos (PostgreSQL, 3.ª forma normal)</h2>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Modelo</th>
+            <th scope="col">Aplicación</th>
+            <th scope="col">Responsabilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in modelo_datos %}
+            <tr>
+              <td><strong>{{ fila.modelo }}</strong></td>
+              <td><code class="codigo-sku">{{ fila.app }}</code></td>
+              <td class="texto-suave">{{ fila.descripcion }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="caja-aviso mt-3">
+      <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>
+      <strong>Normalización:</strong> ninguna tabla repite datos que pertenezcan a
+      otra (el producto guarda la clave de su categoría, no su nombre) ni almacena
+      valores calculables (los subtotales y los totales se calculan al leerlos). La
+      única excepción aparente es <code>DetalleOrden.precio_unitario</code>, y no es
+      una excepción: ese valor es un hecho histórico —el precio que el cliente
+      aceptó ese día— y por eso debe quedar guardado.
+    </div>
+  </div>
+</div>
+
+{# ===== BLOQUE 6: CÓMO PROBAR CON SWAGGER ===== #}
+<div class="tarjeta mb-4">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-list-check" aria-hidden="true"></i> Cómo probar la API paso a paso</h2>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <ol class="mb-0">
+      {% for paso in pasos_swagger %}
+        <li class="mb-2">{{ paso }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+
+{# ===== BLOQUE 7: CREDENCIALES DE PRUEBA ===== #}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2><i class="bi bi-key" aria-hidden="true"></i> Credenciales de prueba</h2>
+    <span class="badge-hp badge-neutro">
+      <i class="bi bi-terminal" aria-hidden="true"></i> python manage.py seed_data
+    </span>
+  </div>
+  <div class="tarjeta-cuerpo">
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Usuario</th>
+            <th scope="col">Contraseña</th>
+            <th scope="col">Rol</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in credenciales %}
+            <tr>
+              <td><code class="codigo-sku">{{ fila.usuario }}</code></td>
+              <td><code class="codigo-sku">{{ fila.contrasena }}</code></td>
+              <td>
+                <span class="badge-hp {% if fila.rol == 'Cliente' %}badge-rol-cliente{% else %}badge-rol-administrador{% endif %}">
+                  <i class="bi {% if fila.rol == 'Cliente' %}bi-person{% else %}bi-shield-lock{% endif %}" aria-hidden="true"></i>
+                  {{ fila.rol }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="texto-tenue texto-mini mt-3 mb-0">
+      Son credenciales de demostración, creadas por el comando de datos de prueba
+      para que el sistema se pueda evaluar de inmediato.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

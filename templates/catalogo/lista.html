@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/lista.html — CATÁLOGO PÚBLICO
+   Responsabilidad: mostrar los componentes publicados con el
+   formulario de filtros, la búsqueda, el ordenamiento y la
+   paginación.
+
+   El formulario de filtros lo dibuja ProductoFilter, el MISMO
+   FilterSet de django-filter que usa GET /api/productos/. Por eso
+   los filtros de esta pantalla y los de la API se comportan igual:
+   están definidos una sola vez, en catalogo/filtros.py.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    {{ total_resultados }} componente(s) disponible(s). Filtre por categoría, marca,
+    rango de precios o disponibilidad de stock.
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: FORMULARIO DE FILTROS (ProductoFilter) ===== #}
+<form method="get" class="panel-filtros mb-4">
+  <div class="row g-3">
+    {% for campo in filtro.form %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <label class="form-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% for error in campo.errors %}
+          <div class="error-campo">
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            <span>{{ error }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    {# Ordenamiento: los mismos campos que ordering_fields de la API #}
+    <div class="col-12 col-md-6 col-lg-4">
+      <label class="form-label" for="ordering">Ordenar por</label>
+      <select class="form-select" name="ordering" id="ordering">
+        {% for valor, etiqueta in ordenes_validos.items %}
+          <option value="{{ valor }}" {% if orden_actual == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-funnel" aria-hidden="true"></i> Aplicar filtros
+    </button>
+    {% if hay_filtros_activos %}
+      <a href="/catalogo/" class="btn btn-light-hp">
+        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Limpiar
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+{# ===== BLOQUE 2: RESULTADOS ===== #}
+{% if pagina.object_list %}
+  <div class="row g-3">
+    {% for producto in pagina.object_list %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <a href="/catalogo/{{ producto.pk }}/" class="tarjeta-enlace">
+          <article class="tarjeta tarjeta-producto">
+            <div class="cuerpo">
+              <span class="etiqueta-categoria">
+                <i class="bi {{ producto.categoria.icono|default:"bi-box" }}" aria-hidden="true"></i>
+                {{ producto.categoria.nombre }}
+              </span>
+              <h2 class="nombre">{{ producto.nombre }}</h2>
+              <p class="texto-suave mb-0 texto-chico">
+                <i class="bi bi-award" aria-hidden="true"></i> {{ producto.marca.nombre }}
+              </p>
+              <p class="mb-0"><span class="codigo-sku">{{ producto.sku }}</span></p>
+              {% if producto.descripcion %}
+                <p class="texto-tenue mb-0 texto-mini">{{ producto.descripcion|truncatechars:90 }}</p>
+              {% endif %}
+            </div>
+            <div class="pie">
+              <span class="precio">{{ producto.precio|clp }}</span>
+              {% if producto.stock == 0 %}
+                <span class="stock-agotado"><i class="bi bi-x-circle" aria-hidden="true"></i> Sin stock</span>
+              {% elif producto.stock <= 5 %}
+                <span class="stock-bajo"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ producto.stock }} restante(s)</span>
+              {% else %}
+                <span class="stock-disponible"><i class="bi bi-check-circle" aria-hidden="true"></i> {{ producto.stock }} en stock</span>
+              {% endif %}
+            </div>
+          </article>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ===== BLOQUE 3: PAGINACIÓN ===== #}
+  {% include "parciales/paginacion.html" %}
+
+{% else %}
+  {# ===== BLOQUE 4: ESTADO VACÍO CON ACCIÓN ===== #}
+  <div class="tarjeta">
+    <div class="estado-vacio">
+      <i class="bi bi-search icono" aria-hidden="true"></i>
+      <h3>Ningún componente coincide con esos filtros</h3>
+      <p>
+        Pruebe con un rango de precios más amplio, con otra categoría o quite la
+        búsqueda por texto para ver todo el catálogo.
+      </p>
+      <a href="/catalogo/" class="btn btn-primary">
+        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Ver todo el catálogo
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

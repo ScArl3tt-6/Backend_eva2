@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/panel_marcas.html — LISTADO DE GESTIÓN DE MARCAS
+   Responsabilidad: listar las marcas con buscador, filtro de estado
+   y paginación, y ofrecer ver, editar, dar de baja y reactivar.
+
+   La marca vive en su propia tabla justamente por la 3.ª forma
+   normal: el país de origen depende de la marca, no del producto,
+   así que no puede guardarse dentro de Producto.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    Fabricantes de los componentes. {{ total_activos }} activa(s) y
+    {{ total_inactivos }} dada(s) de baja.
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: BUSCADOR Y BOTÓN DE CREACIÓN ===== #}
+{% include "parciales/barra_listado.html" with url_limpiar="/panel/marcas/" placeholder_busqueda="Nombre de la marca o país" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <p class="texto-suave mb-0">{{ total_resultados }} resultado(s)</p>
+  <a href="/panel/marcas/nueva/" class="btn btn-primary btn-bloque-movil">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva marca
+  </a>
+</div>
+
+{# ===== BLOQUE 2: TABLA ===== #}
+{% if pagina.object_list %}
+  <div class="tarjeta">
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Marca</th>
+            <th scope="col">País de origen</th>
+            <th scope="col" class="numerico">Productos</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for marca in pagina.object_list %}
+            <tr {% if not marca.activo %}class="fila-inactiva"{% endif %}>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="icono-modulo secundario" aria-hidden="true"><i class="bi bi-award"></i></span>
+                  <a href="/panel/marcas/{{ marca.pk }}/"><strong>{{ marca.nombre }}</strong></a>
+                </div>
+              </td>
+              <td class="texto-suave">{{ marca.pais_origen|default:"No registrado" }}</td>
+              <td class="numerico">{{ marca.total_productos|default:0|miles }}</td>
+              <td>
+                {% if marca.activo %}
+                  <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activa</span>
+                {% else %}
+                  <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> De baja</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <a href="/panel/marcas/{{ marca.pk }}/" class="btn btn-light-hp btn-sm" title="Ver la ficha">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </a>
+                  <a href="/panel/marcas/{{ marca.pk }}/editar/" class="btn btn-light-hp btn-sm" title="Editar">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                  </a>
+                  {% if marca.activo %}
+                    <a href="/panel/marcas/{{ marca.pk }}/desactivar/" class="btn btn-light-hp btn-sm" title="Dar de baja">
+                      <i class="bi bi-slash-circle" aria-hidden="true"></i>
+                    </a>
+                  {% else %}
+                    <form method="post" action="/panel/marcas/{{ marca.pk }}/reactivar/" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-light-hp btn-sm" title="Reactivar">
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include "parciales/paginacion.html" %}
+
+{% else %}
+  {# ===== BLOQUE 3: ESTADO VACÍO ===== #}
+  <div class="tarjeta">
+    <div class="estado-vacio">
+      <i class="bi bi-award icono" aria-hidden="true"></i>
+      <h3>No hay marcas que coincidan</h3>
+      <p>
+        Registre la primera marca del catálogo, o cambie el filtro de estado y la
+        búsqueda para ver otras.
+      </p>
+      <a href="/panel/marcas/nueva/" class="btn btn-primary">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva marca
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

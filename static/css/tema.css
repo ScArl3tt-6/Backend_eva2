@@ -1,0 +1,1197 @@
+/* ============================================================
+   tema.css — TEMA VISUAL DE HardPoint PC
+   Alumna: Genesis Quezada Sanzana — Sección IEC-C4-N2 — 2026
+
+   Responsabilidad: definir TODO el color y el estilo del sitio en
+   un único archivo. Ninguna plantilla lleva colores escritos a
+   mano: cambiar la paleta consiste en editar solo el bloque
+   :root de aquí abajo.
+
+   Estilo elegido: moderno y minimalista, con azul rey pastel como
+   color principal, morados y azules pastel como secundarios,
+   acentos pastel y un fondo intermedio (ni muy claro ni oscuro),
+   agradable para leer largo rato.
+   ============================================================ */
+
+/* ============================================================
+   BLOQUE 1 — PALETA Y VARIABLES DEL TEMA
+   Único punto de verdad del color. Las variables de Bootstrap
+   (--bs-*) se redefinen a partir de estas, de modo que los
+   componentes de la biblioteca hereden la paleta del proyecto.
+   ============================================================ */
+:root {
+  /* --- Paleta principal: azul rey pastel --- */
+  --color-principal: #4c63d2;
+  --color-principal-fuerte: #3a4eae;
+  --color-principal-suave: #e9edfc;
+  --color-principal-rgb: 76, 99, 210;
+
+  /* --- Paleta secundaria: morados y azules pastel --- */
+  --color-secundario: #8b7bd8;
+  --color-secundario-fuerte: #6f5fc0;
+  --color-secundario-suave: #f1eefc;
+  --color-secundario-rgb: 139, 123, 216;
+
+  /* --- Acento pastel --- */
+  --color-acento: #58c4c0;
+  --color-acento-fuerte: #3da8a4;
+  --color-acento-suave: #e4f7f6;
+
+  /* --- Fondo y superficies --- */
+  --color-fondo: #f1f4fb;
+  --color-fondo-alterno: #e7ecf8;
+  --color-superficie: #ffffff;
+  --color-superficie-suave: #fafbff;
+
+  /* --- Texto --- */
+  --color-texto: #2e3350;
+  --color-texto-suave: #6a7194;
+  --color-texto-tenue: #989db8;
+  --color-texto-claro: #ffffff;
+
+  /* --- Bordes y sombras --- */
+  --color-borde: #e0e5f4;
+  --color-borde-fuerte: #cdd4ec;
+  --sombra-suave: 0 1px 2px rgba(46, 51, 80, 0.04), 0 2px 8px rgba(46, 51, 80, 0.05);
+  --sombra-media: 0 4px 16px rgba(46, 51, 80, 0.08);
+  --sombra-elevada: 0 10px 30px rgba(76, 99, 210, 0.14);
+
+  /* --- Estados del sistema (pastel, con contraste accesible) --- */
+  --color-exito: #3f9e84;
+  --color-exito-suave: #e3f5ef;
+  --color-advertencia: #c98a1e;
+  --color-advertencia-suave: #fdf2dd;
+  --color-peligro: #d1526a;
+  --color-peligro-suave: #fceaee;
+  --color-info: #3f83c4;
+  --color-info-suave: #e6f1fb;
+
+  /* --- Geometría y tipografía --- */
+  --radio-chico: 8px;
+  --radio: 14px;
+  --radio-grande: 20px;
+  --espacio: 1rem;
+  --tipografia: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --transicion: 160ms ease;
+
+  /* --- Redefinición de las variables de Bootstrap 5.3 --- */
+  --bs-primary: var(--color-principal);
+  --bs-primary-rgb: var(--color-principal-rgb);
+  --bs-secondary: var(--color-secundario);
+  --bs-secondary-rgb: var(--color-secundario-rgb);
+  --bs-body-bg: var(--color-fondo);
+  --bs-body-color: var(--color-texto);
+  --bs-body-font-family: var(--tipografia);
+  --bs-border-color: var(--color-borde);
+  --bs-link-color: var(--color-principal);
+  --bs-link-hover-color: var(--color-principal-fuerte);
+  --bs-border-radius: var(--radio-chico);
+  --bs-emphasis-color: var(--color-texto);
+}
+
+/* ============================================================
+   BLOQUE 2 — BASE DEL DOCUMENTO
+   Fondo con un degradado muy suave para que el sitio no se vea
+   plano, y una estructura en columna que mantiene el footer
+   pegado abajo incluso en páginas cortas.
+   ============================================================ */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--color-fondo);
+  background-image:
+    radial-gradient(circle at 12% -8%, rgba(var(--color-principal-rgb), 0.1), transparent 42%),
+    radial-gradient(circle at 92% 2%, rgba(var(--color-secundario-rgb), 0.1), transparent 40%);
+  background-attachment: fixed;
+  color: var(--color-texto);
+  font-family: var(--tipografia);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  flex: 1 0 auto;
+  padding-block: 2rem 3rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-texto);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--color-principal);
+  text-decoration: none;
+  transition: color var(--transicion);
+}
+
+a:hover {
+  color: var(--color-principal-fuerte);
+  text-decoration: underline;
+}
+
+.texto-suave {
+  color: var(--color-texto-suave);
+}
+
+.texto-tenue {
+  color: var(--color-texto-tenue);
+}
+
+/* Foco visible en todo el sitio: requisito de accesibilidad. */
+:focus-visible {
+  outline: 3px solid rgba(var(--color-principal-rgb), 0.45);
+  outline-offset: 2px;
+  border-radius: var(--radio-chico);
+}
+
+/* ============================================================
+   BLOQUE 3 — BARRA DE NAVEGACIÓN
+   Superficie blanca con borde inferior en lugar de una barra de
+   color saturado: es la decisión que le da el aire minimalista.
+   ============================================================ */
+.navbar-hp {
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-borde);
+  box-shadow: var(--sombra-suave);
+  padding-block: 0.7rem;
+}
+
+.navbar-hp .navbar-brand {
+  color: var(--color-texto);
+  font-weight: 700;
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.navbar-hp .navbar-brand:hover {
+  color: var(--color-principal);
+  text-decoration: none;
+}
+
+.marca-icono {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--color-principal), var(--color-secundario));
+  color: var(--color-texto-claro);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  box-shadow: var(--sombra-media);
+}
+
+.navbar-hp .nav-link {
+  color: var(--color-texto-suave);
+  font-weight: 500;
+  border-radius: var(--radio-chico);
+  padding: 0.45rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transicion);
+}
+
+.navbar-hp .nav-link:hover {
+  color: var(--color-principal);
+  background-color: var(--color-principal-suave);
+  text-decoration: none;
+}
+
+.navbar-hp .nav-link.activo {
+  color: var(--color-principal-fuerte);
+  background-color: var(--color-principal-suave);
+  font-weight: 600;
+}
+
+/* ============================================================
+   BLOQUE 4 — MIGAS DE PAN Y ENCABEZADO DE PÁGINA
+   Misma estructura en todas las pantallas: migas, título y
+   descripción, seguidas del contenido en tarjetas.
+   ============================================================ */
+.migas {
+  font-size: 0.86rem;
+  margin-bottom: 0.85rem;
+}
+
+.migas a {
+  color: var(--color-texto-suave);
+}
+
+.migas a:hover {
+  color: var(--color-principal);
+}
+
+.migas .separador {
+  color: var(--color-texto-tenue);
+  margin-inline: 0.45rem;
+}
+
+.migas .actual {
+  color: var(--color-texto);
+  font-weight: 600;
+}
+
+.encabezado-pagina {
+  margin-bottom: 1.6rem;
+}
+
+.encabezado-pagina h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 0.3rem;
+}
+
+.encabezado-pagina .bajada {
+  color: var(--color-texto-suave);
+  margin-bottom: 0;
+  max-width: 68ch;
+}
+
+/* ============================================================
+   BLOQUE 5 — TARJETAS
+   Contenedor visual de todo el contenido del sitio.
+   ============================================================ */
+.tarjeta {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-suave);
+  transition: transform var(--transicion), box-shadow var(--transicion);
+}
+
+.tarjeta-cabecera {
+  padding: 1.05rem 1.35rem;
+  border-bottom: 1px solid var(--color-borde);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tarjeta-cabecera h2,
+.tarjeta-cabecera h3 {
+  font-size: 1.05rem;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.tarjeta-cuerpo {
+  padding: 1.35rem;
+}
+
+.tarjeta-pie {
+  padding: 1rem 1.35rem;
+  border-top: 1px solid var(--color-borde);
+  background-color: var(--color-superficie-suave);
+  border-radius: 0 0 var(--radio) var(--radio);
+}
+
+.tarjeta-enlace {
+  display: block;
+  color: inherit;
+  height: 100%;
+}
+
+.tarjeta-enlace:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tarjeta-enlace:hover .tarjeta {
+  transform: translateY(-3px);
+  box-shadow: var(--sombra-elevada);
+  border-color: var(--color-principal-suave);
+}
+
+/* ============================================================
+   BLOQUE 6 — TARJETAS DE ESTADÍSTICA E ÍCONOS DE MÓDULO
+   ============================================================ */
+.estadistica {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.estadistica .cifra {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-principal-fuerte);
+}
+
+.estadistica .rotulo {
+  color: var(--color-texto-suave);
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+.icono-modulo {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  background-color: var(--color-principal-suave);
+  color: var(--color-principal-fuerte);
+}
+
+.icono-modulo.secundario {
+  background-color: var(--color-secundario-suave);
+  color: var(--color-secundario-fuerte);
+}
+
+.icono-modulo.acento {
+  background-color: var(--color-acento-suave);
+  color: var(--color-acento-fuerte);
+}
+
+.icono-modulo.grande {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  font-size: 1.7rem;
+  border-radius: 16px;
+}
+
+/* ============================================================
+   BLOQUE 7 — BOTONES
+   Bootstrap fija los colores de .btn-primary con variables
+   propias del componente, así que se redefinen aquí para que
+   respeten la paleta del proyecto.
+   ============================================================ */
+.btn {
+  border-radius: var(--radio-chico);
+  font-weight: 500;
+  padding: 0.5rem 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: all var(--transicion);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--color-principal);
+  --bs-btn-border-color: var(--color-principal);
+  --bs-btn-hover-bg: var(--color-principal-fuerte);
+  --bs-btn-hover-border-color: var(--color-principal-fuerte);
+  --bs-btn-active-bg: var(--color-principal-fuerte);
+  --bs-btn-active-border-color: var(--color-principal-fuerte);
+  --bs-btn-disabled-bg: var(--color-principal-suave);
+  --bs-btn-disabled-border-color: var(--color-principal-suave);
+  --bs-btn-disabled-color: var(--color-texto-tenue);
+  --bs-btn-color: var(--color-texto-claro);
+  --bs-btn-hover-color: var(--color-texto-claro);
+  box-shadow: 0 2px 8px rgba(var(--color-principal-rgb), 0.28);
+}
+
+.btn-secondary {
+  --bs-btn-bg: var(--color-secundario);
+  --bs-btn-border-color: var(--color-secundario);
+  --bs-btn-hover-bg: var(--color-secundario-fuerte);
+  --bs-btn-hover-border-color: var(--color-secundario-fuerte);
+  --bs-btn-active-bg: var(--color-secundario-fuerte);
+  --bs-btn-color: var(--color-texto-claro);
+  --bs-btn-hover-color: var(--color-texto-claro);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--color-principal-fuerte);
+  --bs-btn-border-color: var(--color-borde-fuerte);
+  --bs-btn-hover-bg: var(--color-principal-suave);
+  --bs-btn-hover-border-color: var(--color-principal);
+  --bs-btn-hover-color: var(--color-principal-fuerte);
+  --bs-btn-active-bg: var(--color-principal-suave);
+  --bs-btn-active-color: var(--color-principal-fuerte);
+  --bs-btn-active-border-color: var(--color-principal);
+  background-color: var(--color-superficie);
+}
+
+.btn-success {
+  --bs-btn-bg: var(--color-exito);
+  --bs-btn-border-color: var(--color-exito);
+  --bs-btn-hover-bg: #34866f;
+  --bs-btn-hover-border-color: #34866f;
+  --bs-btn-color: var(--color-texto-claro);
+  --bs-btn-hover-color: var(--color-texto-claro);
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--color-peligro);
+  --bs-btn-border-color: var(--color-peligro);
+  --bs-btn-hover-bg: #b8415a;
+  --bs-btn-hover-border-color: #b8415a;
+  --bs-btn-color: var(--color-texto-claro);
+  --bs-btn-hover-color: var(--color-texto-claro);
+}
+
+.btn-warning {
+  --bs-btn-bg: var(--color-advertencia);
+  --bs-btn-border-color: var(--color-advertencia);
+  --bs-btn-hover-bg: #ad751a;
+  --bs-btn-hover-border-color: #ad751a;
+  --bs-btn-color: var(--color-texto-claro);
+  --bs-btn-hover-color: var(--color-texto-claro);
+}
+
+.btn-light-hp {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto-suave);
+}
+
+.btn-light-hp:hover {
+  background-color: var(--color-principal-suave);
+  border-color: var(--color-principal-suave);
+  color: var(--color-principal-fuerte);
+}
+
+/* ============================================================
+   BLOQUE 8 — BADGES DE ESTADO DE LA ORDEN
+   Los cuatro estados usan siempre el mismo color y el mismo
+   ícono en todas las pantallas (inicio, listado y ficha), para
+   que se reconozcan de un vistazo.
+   ============================================================ */
+.badge-hp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.estado-pendiente {
+  background-color: var(--color-advertencia-suave);
+  color: var(--color-advertencia);
+  border-color: rgba(201, 138, 30, 0.22);
+}
+
+.estado-pagado {
+  background-color: var(--color-info-suave);
+  color: var(--color-info);
+  border-color: rgba(63, 131, 196, 0.22);
+}
+
+.estado-entregado {
+  background-color: var(--color-exito-suave);
+  color: var(--color-exito);
+  border-color: rgba(63, 158, 132, 0.22);
+}
+
+.estado-cancelado {
+  background-color: var(--color-peligro-suave);
+  color: var(--color-peligro);
+  border-color: rgba(209, 82, 106, 0.22);
+}
+
+.badge-activo {
+  background-color: var(--color-exito-suave);
+  color: var(--color-exito);
+  border-color: rgba(63, 158, 132, 0.22);
+}
+
+.badge-inactivo {
+  background-color: var(--color-fondo-alterno);
+  color: var(--color-texto-suave);
+  border-color: var(--color-borde-fuerte);
+}
+
+.badge-rol-administrador {
+  background-color: var(--color-secundario-suave);
+  color: var(--color-secundario-fuerte);
+  border-color: rgba(var(--color-secundario-rgb), 0.22);
+}
+
+.badge-rol-cliente {
+  background-color: var(--color-principal-suave);
+  color: var(--color-principal-fuerte);
+  border-color: rgba(var(--color-principal-rgb), 0.2);
+}
+
+.badge-neutro {
+  background-color: var(--color-fondo-alterno);
+  color: var(--color-texto-suave);
+  border-color: var(--color-borde);
+}
+
+/* ============================================================
+   BLOQUE 9 — TABLAS
+   Encabezado tenue, filas con separación suave y desplazamiento
+   horizontal en pantallas pequeñas.
+   ============================================================ */
+.tabla-hp {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tabla-hp thead th {
+  background-color: var(--color-superficie-suave);
+  color: var(--color-texto-suave);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla-hp tbody td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: middle;
+  color: var(--color-texto);
+}
+
+.tabla-hp tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla-hp tbody tr:hover td {
+  background-color: var(--color-principal-suave);
+}
+
+.tabla-hp .numerico {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fila-inactiva td {
+  opacity: 0.62;
+}
+
+.precio {
+  font-weight: 700;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.precio-grande {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--color-principal-fuerte);
+  font-variant-numeric: tabular-nums;
+}
+
+.precio-congelado {
+  font-weight: 700;
+  color: var(--color-principal-fuerte);
+  font-variant-numeric: tabular-nums;
+}
+
+.codigo-sku {
+  font-family: "Consolas", "SF Mono", "Menlo", monospace;
+  font-size: 0.82rem;
+  background-color: var(--color-fondo-alterno);
+  color: var(--color-texto-suave);
+  padding: 0.14rem 0.45rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   BLOQUE 10 — FORMULARIOS
+   Campos con borde suave, foco azul y errores por campo en rojo
+   pastel legible.
+   ============================================================ */
+.form-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--color-texto);
+  margin-bottom: 0.35rem;
+}
+
+.form-control,
+.form-select {
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-chico);
+  padding: 0.55rem 0.8rem;
+  color: var(--color-texto);
+  background-color: var(--color-superficie);
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-principal);
+  box-shadow: 0 0 0 3px rgba(var(--color-principal-rgb), 0.16);
+  background-color: var(--color-superficie);
+  color: var(--color-texto);
+}
+
+.form-control::placeholder {
+  color: var(--color-texto-tenue);
+}
+
+.form-text {
+  color: var(--color-texto-suave);
+  font-size: 0.82rem;
+}
+
+.form-check-input:checked {
+  background-color: var(--color-principal);
+  border-color: var(--color-principal);
+}
+
+.form-check-input:focus {
+  border-color: var(--color-principal);
+  box-shadow: 0 0 0 3px rgba(var(--color-principal-rgb), 0.16);
+}
+
+.campo-con-error .form-control,
+.campo-con-error .form-select {
+  border-color: var(--color-peligro);
+  background-color: var(--color-peligro-suave);
+}
+
+.error-campo {
+  color: var(--color-peligro);
+  font-size: 0.82rem;
+  margin-top: 0.3rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.panel-filtros {
+  background-color: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 1.15rem;
+}
+
+/* ============================================================
+   BLOQUE 11 — MENSAJES FLASH
+   Alertas de django.contrib.messages con la paleta del proyecto.
+   ============================================================ */
+.alert {
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  padding: 0.85rem 1.1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  box-shadow: var(--sombra-suave);
+}
+
+.alert-success {
+  background-color: var(--color-exito-suave);
+  border-color: rgba(63, 158, 132, 0.28);
+  color: #23634f;
+}
+
+.alert-danger {
+  background-color: var(--color-peligro-suave);
+  border-color: rgba(209, 82, 106, 0.28);
+  color: #8e2f43;
+}
+
+.alert-warning {
+  background-color: var(--color-advertencia-suave);
+  border-color: rgba(201, 138, 30, 0.28);
+  color: #85570e;
+}
+
+.alert-info {
+  background-color: var(--color-info-suave);
+  border-color: rgba(63, 131, 196, 0.28);
+  color: #275a86;
+}
+
+.alert-secondary {
+  background-color: var(--color-fondo-alterno);
+  border-color: var(--color-borde-fuerte);
+  color: var(--color-texto-suave);
+}
+
+/* ============================================================
+   BLOQUE 12 — ESTADO VACÍO
+   Cuando una consulta no devuelve resultados se muestra un
+   mensaje con una acción sugerida, en lugar de una tabla vacía.
+   ============================================================ */
+.estado-vacio {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--color-texto-suave);
+}
+
+.estado-vacio .icono {
+  font-size: 2.6rem;
+  color: var(--color-principal);
+  opacity: 0.45;
+  margin-bottom: 0.85rem;
+  display: block;
+}
+
+.estado-vacio h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+
+.estado-vacio p {
+  max-width: 48ch;
+  margin-inline: auto;
+  margin-bottom: 1.2rem;
+  font-size: 0.92rem;
+}
+
+/* ============================================================
+   BLOQUE 13 — PORTADA
+   Bloque de bienvenida con degradado suave de la paleta.
+   ============================================================ */
+.portada {
+  background: linear-gradient(135deg, var(--color-principal) 0%, var(--color-secundario) 100%);
+  color: var(--color-texto-claro);
+  border-radius: var(--radio-grande);
+  padding: clamp(2rem, 5vw, 3.25rem);
+  box-shadow: var(--sombra-elevada);
+  position: relative;
+  overflow: hidden;
+}
+
+.portada::after {
+  content: "";
+  position: absolute;
+  inset-block-start: -45%;
+  inset-inline-end: -12%;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.portada h1 {
+  color: var(--color-texto-claro);
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.portada p {
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 62ch;
+  position: relative;
+}
+
+.portada .btn-light-hp {
+  background-color: var(--color-superficie);
+  color: var(--color-principal-fuerte);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.portada .btn-contorno-claro {
+  background-color: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: var(--color-texto-claro);
+  font-weight: 500;
+}
+
+.portada .btn-contorno-claro:hover {
+  background-color: rgba(255, 255, 255, 0.24);
+  color: var(--color-texto-claro);
+}
+
+/* ============================================================
+   BLOQUE 14 — PRODUCTOS DEL CATÁLOGO
+   ============================================================ */
+.tarjeta-producto {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tarjeta-producto .cuerpo {
+  padding: 1.2rem;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarjeta-producto .nombre {
+  font-weight: 600;
+  font-size: 0.99rem;
+  line-height: 1.35;
+  color: var(--color-texto);
+  margin: 0;
+}
+
+.tarjeta-producto .pie {
+  padding: 0.9rem 1.2rem;
+  border-top: 1px solid var(--color-borde);
+  background-color: var(--color-superficie-suave);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0 0 var(--radio) var(--radio);
+}
+
+.etiqueta-categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-secundario-fuerte);
+  background-color: var(--color-secundario-suave);
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+}
+
+.stock-disponible {
+  color: var(--color-exito);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.stock-bajo {
+  color: var(--color-advertencia);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.stock-agotado {
+  color: var(--color-peligro);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+/* ============================================================
+   BLOQUE 15 — LÍNEA DE TIEMPO DEL HISTORIAL DE LA ORDEN
+   ============================================================ */
+.linea-tiempo {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.6rem;
+  position: relative;
+}
+
+.linea-tiempo::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0.34rem;
+  inset-block: 0.5rem;
+  width: 2px;
+  background-color: var(--color-borde-fuerte);
+}
+
+.linea-tiempo li {
+  position: relative;
+  padding-bottom: 1.25rem;
+}
+
+.linea-tiempo li:last-child {
+  padding-bottom: 0;
+}
+
+.linea-tiempo li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -1.6rem;
+  inset-block-start: 0.35rem;
+  width: 0.78rem;
+  height: 0.78rem;
+  border-radius: 50%;
+  background-color: var(--color-principal);
+  border: 2px solid var(--color-superficie);
+  box-shadow: 0 0 0 2px var(--color-principal-suave);
+}
+
+.linea-tiempo .fecha {
+  font-size: 0.8rem;
+  color: var(--color-texto-tenue);
+  display: block;
+}
+
+.linea-tiempo .observacion {
+  font-size: 0.87rem;
+  color: var(--color-texto-suave);
+  margin: 0.25rem 0 0;
+}
+
+/* ============================================================
+   BLOQUE 16 — PANTALLA DE REDIRECCIÓN
+   Se usa cuando la dirección solicitada no existe. Mantiene la
+   estética del sitio en lugar de mostrar un error.
+   ============================================================ */
+.caja-redireccion {
+  max-width: 34rem;
+  margin-inline: auto;
+  text-align: center;
+  padding: 2.75rem 2rem;
+}
+
+.caja-redireccion .icono-grande {
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  margin: 0 auto 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  background: linear-gradient(135deg, var(--color-principal-suave), var(--color-secundario-suave));
+  color: var(--color-principal-fuerte);
+}
+
+.ruta-solicitada {
+  font-family: "Consolas", "SF Mono", "Menlo", monospace;
+  background-color: var(--color-fondo-alterno);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto-suave);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radio-chico);
+  display: inline-block;
+  font-size: 0.87rem;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.cuenta-regresiva {
+  font-weight: 700;
+  color: var(--color-principal-fuerte);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   BLOQUE 17 — PIE DE PÁGINA
+   Muestra en todas las pantallas el nombre de la alumna, su
+   sección y el año, más los enlaces a la documentación y a
+   Swagger. Los datos llegan del context processor, nunca escritos
+   a mano en la plantilla.
+   ============================================================ */
+.pie-hp {
+  background-color: var(--color-superficie);
+  border-top: 1px solid var(--color-borde);
+  padding-block: 1.4rem;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.pie-hp .firma {
+  color: var(--color-texto-suave);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.pie-hp .firma strong {
+  color: var(--color-texto);
+  font-weight: 600;
+}
+
+.pie-hp .enlaces {
+  display: flex;
+  gap: 1.15rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pie-hp .enlaces a {
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.pie-hp .enlaces a:hover {
+  color: var(--color-principal);
+  text-decoration: none;
+}
+
+/* ============================================================
+   BLOQUE 18 — PAGINACIÓN
+   ============================================================ */
+.paginacion-hp .page-link {
+  color: var(--color-texto-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-chico);
+  margin-inline: 0.12rem;
+  padding: 0.4rem 0.75rem;
+  background-color: var(--color-superficie);
+}
+
+.paginacion-hp .page-link:hover {
+  background-color: var(--color-principal-suave);
+  border-color: var(--color-principal-suave);
+  color: var(--color-principal-fuerte);
+}
+
+.paginacion-hp .page-item.active .page-link {
+  background-color: var(--color-principal);
+  border-color: var(--color-principal);
+  color: var(--color-texto-claro);
+}
+
+.paginacion-hp .page-item.disabled .page-link {
+  color: var(--color-texto-tenue);
+  background-color: var(--color-superficie-suave);
+}
+
+/* ============================================================
+   BLOQUE 19 — UTILIDADES PROPIAS
+   ============================================================ */
+.lista-limpia {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.separador-suave {
+  border: 0;
+  border-top: 1px solid var(--color-borde);
+  margin-block: 1.25rem;
+}
+
+.caja-aviso {
+  background-color: var(--color-acento-suave);
+  border: 1px solid rgba(88, 196, 192, 0.3);
+  border-radius: var(--radio);
+  padding: 1rem 1.15rem;
+  color: #256b68;
+  font-size: 0.9rem;
+}
+
+.caja-codigo {
+  background-color: #2e3350;
+  color: #e9edfc;
+  border-radius: var(--radio-chico);
+  padding: 0.85rem 1rem;
+  font-family: "Consolas", "SF Mono", "Menlo", monospace;
+  font-size: 0.84rem;
+  overflow-x: auto;
+  margin-bottom: 0;
+}
+
+.texto-chico {
+  font-size: 0.86rem;
+}
+
+.texto-mini {
+  font-size: 0.8rem;
+}
+
+.caja-estado {
+  background-color: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.dato-etiqueta {
+  color: var(--color-texto-suave);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.dato-valor {
+  color: var(--color-texto);
+  font-weight: 500;
+  margin-bottom: 0;
+  word-break: break-word;
+}
+
+/* ============================================================
+   BLOQUE 20 — DISEÑO RESPONSIVO
+   El sitio debe verse bien en celular: las tablas se desplazan,
+   los encabezados se apilan y los botones ocupan el ancho.
+   ============================================================ */
+@media (max-width: 767.98px) {
+  main {
+    padding-block: 1.35rem 2rem;
+  }
+
+  .tarjeta-cabecera {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tarjeta-cuerpo {
+    padding: 1.05rem;
+  }
+
+  .estadistica .cifra {
+    font-size: 1.45rem;
+  }
+
+  .pie-hp .enlaces {
+    justify-content: flex-start;
+    margin-top: 0.65rem;
+  }
+
+  .btn-bloque-movil {
+    width: 100%;
+  }
+
+  .tabla-responsiva {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Respeta la preferencia de menos movimiento del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Al imprimir una orden no hacen falta la barra ni los botones. */
+@media print {
+  .navbar-hp,
+  .pie-hp,
+  .sin-impresion {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+}
+
+/* ============================================================
+   BLOQUE 21 — AJUSTES FINOS DE CAMPOS EN TABLAS
+   El campo de cantidad del carro va dentro de una celda, así que
+   necesita un ancho fijo para no deformar la tabla.
+   ============================================================ */
+.campo-cantidad {
+  width: 5.5rem;
+  min-width: 5.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

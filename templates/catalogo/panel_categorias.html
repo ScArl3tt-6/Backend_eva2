@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/panel_categorias.html — LISTADO DE GESTIÓN DE CATEGORÍAS
+   Responsabilidad: listar las categorías con buscador, filtro de
+   estado y paginación, y ofrecer las acciones de ver, editar, dar
+   de baja y reactivar.
+
+   Las filas de registros dados de baja se muestran atenuadas
+   (clase fila-inactiva) y con el botón de reactivar, porque la
+   baja es lógica: la fila sigue en la base de datos.
+   ============================================================ #}
+
+{% block bajada %}
+  <p class="bajada">
+    Tipos de componentes del catálogo. {{ total_activos }} activa(s) y
+    {{ total_inactivos }} dada(s) de baja.
+  </p>
+{% endblock %}
+
+{% block contenido %}
+
+{# ===== BLOQUE 1: BUSCADOR Y BOTÓN DE CREACIÓN ===== #}
+{% include "parciales/barra_listado.html" with url_limpiar="/panel/categorias/" placeholder_busqueda="Nombre o descripción de la categoría" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <p class="texto-suave mb-0">{{ total_resultados }} resultado(s)</p>
+  <a href="/panel/categorias/nueva/" class="btn btn-primary btn-bloque-movil">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva categoría
+  </a>
+</div>
+
+{# ===== BLOQUE 2: TABLA ===== #}
+{% if pagina.object_list %}
+  <div class="tarjeta">
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">Categoría</th>
+            <th scope="col">Descripción</th>
+            <th scope="col" class="numerico">Productos</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for categoria in pagina.object_list %}
+            <tr {% if not categoria.activo %}class="fila-inactiva"{% endif %}>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="icono-modulo" aria-hidden="true">
+                    <i class="bi {{ categoria.icono|default:"bi-box" }}"></i>
+                  </span>
+                  <a href="/panel/categorias/{{ categoria.pk }}/"><strong>{{ categoria.nombre }}</strong></a>
+                </div>
+              </td>
+              <td class="texto-suave texto-chico">
+                {{ categoria.descripcion|default:"Sin descripción"|truncatechars:70 }}
+              </td>
+              <td class="numerico">{{ categoria.total_productos|default:0|miles }}</td>
+              <td>
+                {% if categoria.activo %}
+                  <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activa</span>
+                {% else %}
+                  <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> De baja</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <a href="/panel/categorias/{{ categoria.pk }}/" class="btn btn-light-hp btn-sm" title="Ver la ficha">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </a>
+                  <a href="/panel/categorias/{{ categoria.pk }}/editar/" class="btn btn-light-hp btn-sm" title="Editar">
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                  </a>
+                  {% if categoria.activo %}
+                    <a href="/panel/categorias/{{ categoria.pk }}/desactivar/" class="btn btn-light-hp btn-sm" title="Dar de baja">
+                      <i class="bi bi-slash-circle" aria-hidden="true"></i>
+                    </a>
+                  {% else %}
+                    <form method="post" action="/panel/categorias/{{ categoria.pk }}/reactivar/" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-light-hp btn-sm" title="Reactivar">
+                        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include "parciales/paginacion.html" %}
+
+{% else %}
+  {# ===== BLOQUE 3: ESTADO VACÍO ===== #}
+  <div class="tarjeta">
+    <div class="estado-vacio">
+      <i class="bi bi-tags icono" aria-hidden="true"></i>
+      <h3>No hay categorías que coincidan</h3>
+      <p>
+        Cree la primera categoría del catálogo, o cambie el filtro de estado y la
+        búsqueda para ver otras.
+      </p>
+      <a href="/panel/categorias/nueva/" class="btn btn-primary">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva categoría
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

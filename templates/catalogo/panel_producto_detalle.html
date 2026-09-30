@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/panel_producto_detalle.html — FICHA DEL PRODUCTO
+   Responsabilidad: mostrar todos los datos del componente en el
+   panel de gestión, incluidas las relaciones y el stock, y ofrecer
+   las acciones según su estado.
+   ============================================================ #}
+
+{% block contenido %}
+
+<div class="row g-4">
+
+  {# ===== BLOQUE 1: DATOS DEL PRODUCTO ===== #}
+  <div class="col-lg-8">
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>
+          <span class="icono-modulo" aria-hidden="true"><i class="bi {{ objeto.categoria.icono|default:"bi-cpu" }}"></i></span>
+          {{ objeto.nombre }}
+        </h2>
+        {% if objeto.activo %}
+          <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activo</span>
+        {% else %}
+          <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> Dado de baja</span>
+        {% endif %}
+      </div>
+
+      <div class="tarjeta-cuerpo">
+        <div class="row g-3">
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Código SKU</p>
+            <p class="dato-valor"><span class="codigo-sku">{{ objeto.sku }}</span></p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Identificador</p>
+            <p class="dato-valor">{{ objeto.pk }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Categoría</p>
+            <p class="dato-valor">
+              <a href="/panel/categorias/{{ objeto.categoria_id }}/">{{ objeto.categoria.nombre }}</a>
+            </p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Marca</p>
+            <p class="dato-valor">
+              <a href="/panel/marcas/{{ objeto.marca_id }}/">{{ objeto.marca.nombre }}</a>
+            </p>
+          </div>
+          <div class="col-12">
+            <p class="dato-etiqueta">Descripción</p>
+            <p class="dato-valor">{{ objeto.descripcion|default:"Sin descripción registrada."|linebreaksbr }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Creado el</p>
+            <p class="dato-valor">{{ objeto.creado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Actualizado el</p>
+            <p class="dato-valor">{{ objeto.actualizado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 2: PRECIO, STOCK Y ACCIONES ===== #}
+  <div class="col-lg-4">
+    <div class="tarjeta mb-3">
+      <div class="tarjeta-cuerpo">
+        <p class="dato-etiqueta">Precio unitario</p>
+        <p class="precio-grande mb-3">{{ objeto.precio|clp }}</p>
+
+        <p class="dato-etiqueta">Stock físico</p>
+        {% if objeto.stock == 0 %}
+          <p class="stock-agotado mb-0">
+            <i class="bi bi-x-circle" aria-hidden="true"></i> Sin unidades en bodega
+          </p>
+        {% elif objeto.stock <= 5 %}
+          <p class="stock-bajo mb-0">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            {{ objeto.stock }} unidad(es) — últimas existencias
+          </p>
+        {% else %}
+          <p class="stock-disponible mb-0">
+            <i class="bi bi-check-circle" aria-hidden="true"></i>
+            {{ objeto.stock|miles }} unidad(es) disponibles
+          </p>
+        {% endif %}
+
+        <div class="caja-aviso mt-3">
+          <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+          El stock solo cambia al <strong>pagar</strong> una orden (se descuenta) o al
+          <strong>cancelar</strong> una orden ya pagada (se repone). Agregar al carro y
+          hacer el checkout no lo modifican.
+        </div>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-gear" aria-hidden="true"></i> Acciones</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="d-grid gap-2">
+          <a href="/panel/productos/{{ objeto.pk }}/editar/" class="btn btn-primary">
+            <i class="bi bi-pencil" aria-hidden="true"></i> Editar producto
+          </a>
+          {% if objeto.activo %}
+            <a href="/panel/productos/{{ objeto.pk }}/desactivar/" class="btn btn-danger">
+              <i class="bi bi-slash-circle" aria-hidden="true"></i> Dar de baja
+            </a>
+          {% else %}
+            <form method="post" action="/panel/productos/{{ objeto.pk }}/reactivar/" class="d-grid">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reactivar
+              </button>
+            </form>
+          {% endif %}
+          <a href="/catalogo/{{ objeto.pk }}/" class="btn btn-light-hp">
+            <i class="bi bi-eye" aria-hidden="true"></i> Ver ficha pública
+          </a>
+          <a href="/panel/productos/" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+          </a>
+          <a href="/api/productos/{{ objeto.pk }}/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-braces" aria-hidden="true"></i> Ver en la API
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

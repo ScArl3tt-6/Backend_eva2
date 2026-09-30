@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load formato %}
+{# ============================================================
+   catalogo/panel_marca_detalle.html — FICHA DE LA MARCA
+   Responsabilidad: mostrar los datos de la marca, sus productos
+   asociados y las acciones disponibles según su estado.
+   ============================================================ #}
+
+{% block contenido %}
+
+<div class="row g-4">
+
+  {# ===== BLOQUE 1: DATOS DE LA MARCA ===== #}
+  <div class="col-lg-8">
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>
+          <span class="icono-modulo secundario" aria-hidden="true"><i class="bi bi-award"></i></span>
+          {{ objeto.nombre }}
+        </h2>
+        {% if objeto.activo %}
+          <span class="badge-hp badge-activo"><i class="bi bi-check-circle" aria-hidden="true"></i> Activa</span>
+        {% else %}
+          <span class="badge-hp badge-inactivo"><i class="bi bi-slash-circle" aria-hidden="true"></i> Dada de baja</span>
+        {% endif %}
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="row g-3">
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Identificador</p>
+            <p class="dato-valor">{{ objeto.pk }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">País de origen</p>
+            <p class="dato-valor">{{ objeto.pais_origen|default:"No registrado" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Creada el</p>
+            <p class="dato-valor">{{ objeto.creado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+          <div class="col-6 col-lg-3">
+            <p class="dato-etiqueta">Actualizada el</p>
+            <p class="dato-valor">{{ objeto.actualizado_en|date:"d/m/Y H:i" }}</p>
+          </div>
+        </div>
+        <div class="caja-aviso mt-3">
+          <i class="bi bi-diagram-2 me-1" aria-hidden="true"></i>
+          La marca vive en su propia tabla porque el país de origen depende de ella y
+          no del producto: guardarlo dentro de <code>Producto</code> sería una
+          dependencia transitiva y rompería la 3.ª forma normal.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ===== BLOQUE 2: ACCIONES ===== #}
+  <div class="col-lg-4">
+    <div class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h3><i class="bi bi-gear" aria-hidden="true"></i> Acciones</h3>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="d-grid gap-2">
+          <a href="/panel/marcas/{{ objeto.pk }}/editar/" class="btn btn-primary">
+            <i class="bi bi-pencil" aria-hidden="true"></i> Editar marca
+          </a>
+          {% if objeto.activo %}
+            <a href="/panel/marcas/{{ objeto.pk }}/desactivar/" class="btn btn-danger">
+              <i class="bi bi-slash-circle" aria-hidden="true"></i> Dar de baja
+            </a>
+          {% else %}
+            <form method="post" action="/panel/marcas/{{ objeto.pk }}/reactivar/" class="d-grid">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Reactivar
+              </button>
+            </form>
+          {% endif %}
+          <a href="/panel/marcas/" class="btn btn-light-hp">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+          </a>
+          <a href="/api/marcas/{{ objeto.pk }}/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-braces" aria-hidden="true"></i> Ver en la API
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ===== BLOQUE 3: PRODUCTOS DE LA MARCA ===== #}
+<div class="tarjeta mt-4">
+  <div class="tarjeta-cabecera">
+    <h3><i class="bi bi-cpu" aria-hidden="true"></i> Productos de esta marca</h3>
+    <a href="/panel/productos/?buscar={{ objeto.nombre|urlencode }}" class="btn btn-outline-primary btn-sm">
+      Ver en el listado de productos <i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {% if productos_relacionados %}
+    <div class="tabla-responsiva">
+      <table class="tabla-hp">
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Producto</th>
+            <th scope="col">Categoría</th>
+            <th scope="col" class="numerico">Precio</th>
+            <th scope="col" class="numerico">Stock</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for producto in productos_relacionados %}
+            <tr {% if not producto.activo %}class="fila-inactiva"{% endif %}>
+              <td><span class="codigo-sku">{{ producto.sku }}</span></td>
+              <td><a href="/panel/productos/{{ producto.pk }}/">{{ producto.nombre|truncatechars:48 }}</a></td>
+              <td class="texto-suave texto-chico">{{ producto.categoria.nombre }}</td>
+              <td class="numerico"><span class="precio">{{ producto.precio|clp }}</span></td>
+              <td class="numerico">{{ producto.stock|miles }}</td>
+              <td>
+                {% if producto.activo %}
+                  <span class="badge-hp badge-activo">Activo</span>
+                {% else %}
+                  <span class="badge-hp badge-inactivo">De baja</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="estado-vacio">
+      <i class="bi bi-inbox icono" aria-hidden="true"></i>
+      <h3>Esta marca todavía no tiene productos</h3>
+      <p>Cree un componente y asígnelo a esta marca para que aparezca en el catálogo.</p>
+      <a href="/panel/productos/nuevo/" class="btn btn-primary">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo producto
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
