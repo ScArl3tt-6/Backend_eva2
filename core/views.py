@@ -83,6 +83,10 @@ def inicio(request):
 # ============================================================
 def panel(request):
     """Panel de gestión con accesos a los módulos y sus conteos."""
+    # Cada módulo declara sus propias etiquetas porque lo que se cuenta no
+    # es lo mismo en todos: en el catálogo y en los usuarios son registros
+    # dados de baja, en los carros son ítems retirados y en las órdenes son
+    # ventas canceladas. Usar el mismo texto para los tres sería inexacto.
     modulos = [
         {
             "nombre": "Categorías",
@@ -90,7 +94,9 @@ def panel(request):
             "url": "/panel/categorias/",
             "icono": "bi-tags",
             "activos": Categoria.objects.filter(activo=True).count(),
+            "etiqueta_activos": "activa(s)",
             "inactivos": Categoria.objects.filter(activo=False).count(),
+            "etiqueta_inactivos": "dada(s) de baja",
         },
         {
             "nombre": "Marcas",
@@ -98,7 +104,9 @@ def panel(request):
             "url": "/panel/marcas/",
             "icono": "bi-award",
             "activos": Marca.objects.filter(activo=True).count(),
+            "etiqueta_activos": "activa(s)",
             "inactivos": Marca.objects.filter(activo=False).count(),
+            "etiqueta_inactivos": "dada(s) de baja",
         },
         {
             "nombre": "Productos",
@@ -106,7 +114,9 @@ def panel(request):
             "url": "/panel/productos/",
             "icono": "bi-cpu",
             "activos": Producto.objects.filter(activo=True).count(),
+            "etiqueta_activos": "publicado(s)",
             "inactivos": Producto.objects.filter(activo=False).count(),
+            "etiqueta_inactivos": "dado(s) de baja",
         },
         {
             "nombre": "Usuarios",
@@ -114,7 +124,9 @@ def panel(request):
             "url": "/panel/usuarios/",
             "icono": "bi-people",
             "activos": Usuario.objects.filter(is_active=True).count(),
+            "etiqueta_activos": "activo(s)",
             "inactivos": Usuario.objects.filter(is_active=False).count(),
+            "etiqueta_inactivos": "dado(s) de baja",
         },
         {
             "nombre": "Carros",
@@ -122,7 +134,9 @@ def panel(request):
             "url": "/panel/carros/",
             "icono": "bi-cart3",
             "activos": Carro.objects.count(),
+            "etiqueta_activos": "carro(s)",
             "inactivos": ItemCarro.objects.filter(activo=False).count(),
+            "etiqueta_inactivos": "ítem(s) retirado(s)",
         },
         {
             "nombre": "Órdenes",
@@ -130,7 +144,9 @@ def panel(request):
             "url": "/panel/ordenes/",
             "icono": "bi-receipt",
             "activos": Orden.objects.count(),
+            "etiqueta_activos": "orden(es)",
             "inactivos": Orden.objects.filter(estado=EstadoOrden.CANCELADO).count(),
+            "etiqueta_inactivos": "cancelada(s)",
         },
     ]
 
@@ -314,6 +330,44 @@ def documentacion(request):
 # ruta existe agregándole la barra; si existe, se redirige a ella
 # en lugar de mostrar el aviso.
 # ============================================================
+def _existe_con_barra_final(request) -> bool:
+    """Indica si la misma ruta, con barra final, corresponde a una página real.
+
+    Hay dos trampas que esta función evita:
+
+    1. El catch-all r"^.*$" hace que resolve() encuentre SIEMPRE una
+       coincidencia, así que no basta con que no lance Resolver404: hay que
+       comprobar que la vista encontrada no sea este mismo catch-all. Sin
+       esa comprobación, /asdf se redirigiría a /asdf/ en bucle.
+
+    2. Con DEBUG activo también existe una ruta que sirve los archivos
+       estáticos y de media. Para /static/noexiste.css, resolve() de
+       "/static/noexiste.css/" encontraría esa vista y produciría otro
+       bucle de redirecciones. Por eso las vistas que sirven archivos
+       tampoco cuentan como "página real".
+    """
+    from django.contrib.staticfiles.views import serve as servir_staticfiles
+    from django.views.static import serve as servir_archivos
+
+    ruta = request.path
+    if ruta.endswith("/"):
+        return False
+
+    # Una dirección con extensión de archivo (por ejemplo .css) nunca es
+    # una página del sitio: no tiene sentido probarla con barra final.
+    ultimo_segmento = ruta.rsplit("/", 1)[-1]
+    if "." in ultimo_segmento:
+        return False
+
+    try:
+        coincidencia = resolve(ruta + "/")
+    except Resolver404:
+        return False
+
+    vistas_que_no_cuentan = {redireccion_inicio, servir_archivos, servir_staticfiles}
+    return coincidencia.func not in vistas_que_no_cuentan
+
+
 def redireccion_inicio(request, *args, **kwargs):
     """Atiende cualquier dirección inexistente sin mostrar un 404."""
     from django.shortcuts import redirect
@@ -321,23 +375,11 @@ def redireccion_inicio(request, *args, **kwargs):
     ruta = request.path
 
     # --- ¿Existe la misma ruta con barra final? ---
-    # Ojo: el catch-all r"^.*$" hace que resolve() encuentre SIEMPRE una
-    # coincidencia, así que no basta con que no lance Resolver404. Hay
-    # que comprobar además que la vista encontrada sea una vista real y
-    # no este mismo catch-all; de lo contrario /asdf se redirigiría a
-    # /asdf/ en un bucle en lugar de mostrar el aviso.
-    if not ruta.endswith("/"):
-        ruta_con_barra = ruta + "/"
-        try:
-            coincidencia = resolve(ruta_con_barra)
-        except Resolver404:
-            coincidencia = None
-
-        if coincidencia is not None and coincidencia.func is not redireccion_inicio:
-            destino = ruta_con_barra
-            if request.META.get("QUERY_STRING"):
-                destino = f"{destino}?{request.META['QUERY_STRING']}"
-            return redirect(destino)
+    if _existe_con_barra_final(request):
+        destino = ruta + "/"
+        if request.META.get("QUERY_STRING"):
+            destino = f"{destino}?{request.META['QUERY_STRING']}"
+        return redirect(destino)
 
     contexto = {
         "titulo_pagina": "Página no encontrada",

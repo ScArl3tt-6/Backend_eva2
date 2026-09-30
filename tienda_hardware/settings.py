@@ -74,15 +74,25 @@ TERCEROS_APPS = [
     "drf_spectacular",
 ]
 
-APPS_PROPIAS = [
-    "core.apps.CoreConfig",
+APPS_NEGOCIO = [
     "usuarios.apps.UsuariosConfig",
     "catalogo.apps.CatalogoConfig",
     "carro.apps.CarroConfig",
     "ordenes.apps.OrdenesConfig",
 ]
 
-INSTALLED_APPS = DJANGO_APPS + TERCEROS_APPS + APPS_PROPIAS
+# El orden de esta lista no es decorativo: "core" va PRIMERO, antes de
+# django.contrib.staticfiles, para que el comando runserver del proyecto
+# (core/management/commands/runserver.py) tenga prioridad sobre el de
+# staticfiles. Django resuelve los comandos recorriendo INSTALLED_APPS al
+# revés, así que gana la aplicación que aparece primero.
+#
+# Ese runserver propio es el que evita que un archivo estático inexistente
+# —por ejemplo /static/noexiste.css— muestre la página 404 de Django.
+INSTALLED_APPS = ["core.apps.CoreConfig"] + DJANGO_APPS + TERCEROS_APPS + APPS_NEGOCIO
+
+# Se conserva el nombre anterior por si alguna herramienta lo consulta.
+APPS_PROPIAS = ["core.apps.CoreConfig"] + APPS_NEGOCIO
 
 
 # ============================================================
@@ -195,6 +205,9 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "core.excepciones.manejador_excepciones_api",
     "DATETIME_FORMAT": "%d-%m-%Y %H:%M",
+    # Títulos en español para la API navegable de DRF. Sin esto, DRF los
+    # deriva del nombre de la clase y muestra textos como «Producto List».
+    "VIEW_NAME_FUNCTION": "core.nombres.nombre_de_vista",
 }
 
 

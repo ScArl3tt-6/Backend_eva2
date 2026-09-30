@@ -21,9 +21,18 @@
 
 from django.http import Http404
 
-# Prefijos que NO se redirigen a la pantalla HTML porque deben
-# responder en JSON (API) o son herramientas de Django.
-PREFIJOS_EXCLUIDOS = ("/api/", "/admin/", "/static/", "/media/")
+# Prefijos que NO se redirigen a la pantalla HTML:
+#   · /api/   → allí el formato correcto es el JSON uniforme de
+#               core/excepciones.py, no una pantalla HTML.
+#   · /admin/ → es una herramienta propia de Django, con sus propias
+#               pantallas de error, y no forma parte de la demostración.
+#
+# /static/ y /media/ NO están excluidos a propósito: un archivo
+# inexistente bajo esas rutas también debe mostrar la pantalla de
+# redirección. En desarrollo, /static/ lo atiende antes el manejador
+# de core/management/commands/runserver.py, porque el runserver de
+# staticfiles intercepta esas direcciones antes de resolver la URL.
+PREFIJOS_EXCLUIDOS = ("/api/", "/admin/")
 
 
 class RedireccionNoEncontradaMiddleware:
