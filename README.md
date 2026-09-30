@@ -29,7 +29,8 @@ verificado de forma atómica al momento del pago.
 10. [Pruebas automatizadas](#10-pruebas-automatizadas)
 11. [Estructura del proyecto](#11-estructura-del-proyecto)
 12. [Notas de instalación en Windows](#12-notas-de-instalación-en-windows)
-13. [Uso de IA en el desarrollo](#13-uso-de-ia-en-el-desarrollo)
+13. [Subir el repositorio a GitHub](#13-subir-el-repositorio-a-github)
+14. [Uso de IA en el desarrollo](#14-uso-de-ia-en-el-desarrollo)
 
 ---
 
@@ -703,7 +704,64 @@ python -m pip install -r requirements.txt
 
 ---
 
-## 13. Uso de IA en el desarrollo
+## 13. Subir el repositorio a GitHub
+
+El repositorio local ya está inicializado y tiene un commit por módulo:
+
+```powershell
+git log --oneline
+```
+
+```
+docs: README de instalación y DEFENSA.md con la ubicación de cada indicador
+feat(ui): plantillas con herencia, tema visual y footer en todas las pantallas
+feat(core): páginas transversales, control de rutas y comandos de gestión
+feat(ordenes): checkout con precios congelados y pago con stock atómico
+feat(carro): carro de compras persistente en PostgreSQL
+feat(catalogo): categorías, marcas y productos con filtros de django-filter
+feat(usuarios): usuario con roles, JWT con claim de rol y permisos
+chore: estructura del proyecto, configuración y base de datos PostgreSQL
+```
+
+### Opción A — con GitHub CLI (si lo instala)
+
+```powershell
+winget install --id GitHub.cli
+gh auth login
+gh repo create tienda-hardware-pc --public --source=. --remote=origin --push
+```
+
+### Opción B — creando el repositorio en la web
+
+1. Entre a https://github.com/new
+2. Nombre del repositorio: **`tienda-hardware-pc`**
+3. Visibilidad: **Public**
+4. **No** marque «Add a README file» ni «Add .gitignore»: el proyecto ya los tiene.
+5. Pulse **Create repository** y luego ejecute, reemplazando `<su-usuario>`:
+
+```powershell
+git remote add origin https://github.com/<su-usuario>/tienda-hardware-pc.git
+git branch -M main
+git push -u origin main
+```
+
+### Comprobación antes de subir
+
+El archivo `.env` contiene la contraseña de la base de datos y **nunca** debe
+subirse. Está en `.gitignore`; para confirmarlo:
+
+```powershell
+git check-ignore -v .env
+git ls-files | Select-String "^\.env$"
+```
+
+El primer comando debe responder `.gitignore:11:.env  .env` y el segundo no debe
+devolver nada. Lo que sí se versiona es `.env.example`, que no lleva credenciales
+reales.
+
+---
+
+## 14. Uso de IA en el desarrollo
 
 Durante el desarrollo de este proyecto se usó un asistente de inteligencia
 artificial (Claude, de Anthropic) como herramienta de apoyo. Declaro su uso de

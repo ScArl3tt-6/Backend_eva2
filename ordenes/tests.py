@@ -209,7 +209,7 @@ class PruebasCheckout(BaseOrdenes):
         self.assertEqual(respuesta.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_cada_orden_tiene_un_codigo_unico(self):
-        """El campo codigo es un UUID distinto en cada orden."""
+        """El campo «codigo» del modelo es un UUID distinto en cada orden."""
         self.entrar()
         codigos = set()
 
