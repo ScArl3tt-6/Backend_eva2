@@ -32,7 +32,7 @@ una explicación breve para defenderlo oralmente.
 
 | Qué | Dónde |
 |---|---|
-| Configuración de la base | `tienda_hardware/settings.py` → **L145**, `DATABASES` |
+| Configuración de la base | `tienda_hardware/settings.py` → **L155**, `DATABASES` |
 | Guion de creación | `crear_bd.sql` (crea `tienda_hardware_db` con `ENCODING 'UTF8'` y da `CREATEDB` al rol) |
 | Prueba que lo verifica | `core/tests.py` → `PruebasConfiguracion.test_el_motor_de_base_de_datos_es_postgresql` |
 
@@ -119,7 +119,7 @@ comprobando que la fila **siga** en la base de datos después del DELETE.
 | Serializer que inserta los claims | `usuarios/tokens.py` → `TokenConRolSerializer` **L26** |
 | Método sobrescrito | `usuarios/tokens.py` → `get_token()` **L30**; el claim se agrega en **L35** |
 | Vista de login | `usuarios/views.py` → `LoginConRolView` **L157** |
-| Configuración de JWT | `tienda_hardware/settings.py` → `SIMPLE_JWT` **L207** |
+| Configuración de JWT | `tienda_hardware/settings.py` → `SIMPLE_JWT` **L220** |
 | Pruebas | `usuarios/tests.py` → `PruebasLoginJWT.test_token_decodificado_contiene_el_claim_rol` |
 
 **Qué decir:** `get_token()` agrega `rol`, `username`, `email` y `nombre_completo`.
@@ -447,7 +447,7 @@ filtro).
 
 | Qué | Dónde |
 |---|---|
-| Configuración | `tienda_hardware/settings.py` → `SPECTACULAR_SETTINGS` **L281** |
+| Configuración | `tienda_hardware/settings.py` → `SPECTACULAR_SETTINGS` **L294** |
 | Esquema | `tienda_hardware/urls.py` → **L80**, `/api/schema/` |
 | Swagger UI | `tienda_hardware/urls.py` → **L82**, `/api/docs/` |
 | ReDoc | `tienda_hardware/urls.py` → **L90**, `/api/redoc/` |
@@ -534,13 +534,13 @@ enlaces a `/documentacion/` y `/api/docs/`.
 |---|---|
 | **1** Catch-all | `tienda_hardware/urls.py` → **L137**, `re_path(r"^.*$", redireccion_inicio)` |
 | **2** handler404 | `tienda_hardware/urls.py` → **L146** |
-| **3** Middleware | `core/middleware.py` → `RedireccionNoEncontradaMiddleware` **L29**, `process_exception` **L56** |
-| Vista de la pantalla | `core/views.py` → `redireccion_inicio` **L317** |
+| **3** Middleware | `core/middleware.py` → `RedireccionNoEncontradaMiddleware` **L38**, `process_exception` **L65** |
+| Vista de la pantalla | `core/views.py` → `redireccion_inicio` **L371** |
 | Plantilla | `templates/core/redireccion.html` |
 | Helper que evita `get_object_or_404` | `core/utilidades.py` → `obtener_o_redirigir` **L27** |
 
 **El detalle fino que conviene contar:** el catch-all `^.*$` hace que `resolve()`
-encuentre **siempre** una coincidencia. Por eso `redireccion_inicio` (**L317**) no
+encuentre **siempre** una coincidencia. Por eso `redireccion_inicio` (**L371**) no
 se limita a comprobar que `resolve()` no lance `Resolver404`: compara además la
 vista encontrada con la del propio catch-all. Sin esa comparación, `/asdf` se
 redirigiría a `/asdf/` en un bucle en lugar de mostrar el aviso. Fue un error real
@@ -584,6 +584,72 @@ misma forma:
 Los 404 de la API se traducen al español: Django los genera en inglés
 («No Producto matches the given query.») y el manejador reemplaza el mensaje,
 conservando el original en `detalle`.
+
+---
+
+### 6.6 La interfaz no filtra nada de código
+
+| Qué | Dónde |
+|---|---|
+| Prueba que lo garantiza | `core/tests.py` → `PruebasSinFugasDePlantilla` **L532** |
+| Comentarios de bloque en las plantillas | `{% comment %} ... {% endcomment %}` en las 29 plantillas |
+
+**El error que hubo y cómo se corrigió** (vale la pena contarlo, porque muestra
+criterio):
+
+Django solo admite los comentarios `{# ... #}` en **una línea**. Su lexer usa la
+expresión regular `({%.*?%}|{{.*?}}|{#.*?#})` **sin** la marca `DOTALL`, así que
+el punto no cruza saltos de línea: un comentario de varias líneas no se reconoce
+como token y se imprime **tal cual** en la página. El proyecto tenía 31
+comentarios de bloque de varias líneas y se veían como texto en el navegador, en
+el encabezado, antes de las migas de pan, en los mensajes y en el pie.
+
+Se convirtieron todos a `{% comment %} ... {% endcomment %}`, que sí admite varias
+líneas, conservando el mismo contenido y el mismo formato de bloque.
+
+**La lección de método, que es lo que conviene decir en la defensa:** las pruebas
+anteriores usaban `assertContains`, que solo comprueba que un texto **esté**
+presente. Ninguna cantidad de pruebas de ese tipo habría detectado texto
+**sobrante**. Por eso la prueba nueva comprueba lo contrario: recorre 34 pantallas
+—incluidas Swagger, ReDoc y la API navegable— y falla si alguna contiene `{#`,
+`#}`, `{%`, `%}`, `{{`, `}}`, `BLOQUE`, `Responsabilidad:` o `====`. Una tercera
+prueba revisa las plantillas en disco y falla si vuelve a aparecer un `{# #}` de
+varias líneas.
+
+Se comprobó que la prueba **de verdad falla**: al reintroducir a propósito el
+error en el footer, falló en todas las pantallas; al restaurarlo, volvió a pasar.
+
+### 6.7 Los archivos estáticos tampoco muestran el 404
+
+| Qué | Dónde |
+|---|---|
+| Comando propio | `core/management/commands/runserver.py` → `Command` **L60** |
+| Manejador | mismo archivo → `ManejadorEstaticosConRedireccion` **L39** |
+| Orden de las aplicaciones | `tienda_hardware/settings.py` → `INSTALLED_APPS` **L92** |
+| Pruebas | `core/tests.py` → `PruebasEstaticosInexistentes` **L658** |
+
+**El hueco que quedaba:** el `runserver` de `django.contrib.staticfiles` envuelve
+la aplicación en un `StaticFilesHandler` que atiende todo lo que empiece por
+`STATIC_URL` **antes** de que Django resuelva la URL. Por eso una dirección como
+`/static/noexiste.css` no llegaba al middleware del proyecto ni al catch-all, y
+terminaba mostrando el 404 de Django.
+
+**La solución:** un comando `runserver` propio que hereda del de staticfiles y solo
+cambia la clase del manejador. Para que tenga prioridad, `core` se declara **antes**
+de `django.contrib.staticfiles` en `INSTALLED_APPS`: Django resuelve los comandos
+recorriendo esa lista al revés, de modo que gana la aplicación que aparece primero.
+
+**El detalle fino:** al hacerlo apareció un bucle de redirecciones. La función que
+prueba la ruta con barra final encontraba la vista que sirve los estáticos, así que
+`/static/x.css` redirigía a `/static/x.css/`, y así sin fin. Se corrigió en
+`core/views.py` → `_existe_con_barra_final` **L333**, que descarta tanto el propio
+catch-all como las vistas que sirven archivos, y además no prueba nunca una ruta
+cuyo último segmento tenga extensión.
+
+**Resultado verificado:** `/static/noexiste.css`, `/static/js/noexiste.js`,
+`/static/img/falta.png` y `/media/nada.jpg` responden **200** con la pantalla de
+redirección del proyecto, y los estáticos reales (`tema.css`, `app.js`,
+`favicon.svg`) se siguen sirviendo con su tipo de contenido correcto.
 
 ---
 
@@ -645,7 +711,7 @@ la base con `seed_data` cargado, y abiertas dos pestañas:
    de los productos con `select_for_update` en orden fijo por id, relee el stock ya
    descontado y descuenta con `F`. El segundo comprador espera el bloqueo y es
    rechazado limpiamente.»*
-4. Mostrar `python manage.py test` → **212 pruebas, OK**.
+4. Mostrar `python manage.py test` → **221 pruebas, OK**.
 5. Cerrar escribiendo `/asdf` en el navegador: aparece la pantalla de redirección
    con la cuenta regresiva. *«Ninguna dirección muestra un 404: hay tres capas de
    protección.»*

@@ -585,7 +585,7 @@ hilo cierra su propia conexión al terminar.
 python manage.py test
 ```
 
-**212 pruebas**, repartidas así:
+**221 pruebas**, repartidas así:
 
 | Módulo | Pruebas | Qué cubre |
 |---|---|---|
@@ -593,7 +593,7 @@ python manage.py test
 | `catalogo/tests.py` | 40 | Los seis filtros de `django-filter`, búsqueda, orden, paginación, baja lógica por API y por HTML, validaciones y `CheckConstraint` |
 | `carro/tests.py` | 38 | Persistencia tras el logout, suma sin duplicar filas, que agregar no descuenta stock, baja lógica de ítems, aislamiento entre clientes |
 | `ordenes/tests.py` | 57 | Checkout con precios congelados, pago atómico, 409 por stock insuficiente, reposición al cancelar, transiciones inválidas, **concurrencia real** y aislamiento de órdenes |
-| `core/tests.py` | 48 | Que ninguna ruta inexistente dé 404 (14 direcciones), redirección con barra final, footer con los datos de la alumna en todas las pantallas, OpenAPI, filtro `|clp` y configuración |
+| `core/tests.py` | 57 | Que ninguna ruta inexistente dé 404 (14 direcciones), que ninguna pantalla filtre código de plantilla (34 pantallas), archivos estáticos ausentes, redirección con barra final, footer con los datos de la alumna, OpenAPI, filtro `|clp` y configuración |
 
 Para ejecutar un módulo o una prueba concreta:
 
