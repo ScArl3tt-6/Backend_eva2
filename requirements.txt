@@ -1,0 +1,49 @@
+# ============================================================
+# requirements.txt — DEPENDENCIAS DEL PROYECTO
+# Proyecto: HardPoint PC (EVA-2 Desarrollo Backend)
+# Alumna: Genesis Quezada Sanzana — Sección IEC-C4-N2 — 2026
+#
+# Versiones fijadas con "pip freeze" sobre el entorno que se usó
+# para desarrollar y probar el proyecto (Python 3.12.10).
+#
+# Instalación en PowerShell:
+#   py -3.12 -m venv .venv
+#   .\.venv\Scripts\Activate.ps1
+#   python -m pip install --upgrade pip
+#   pip install -r requirements.txt
+# ============================================================
+
+# --- Framework web ---
+Django==5.2.17
+
+# --- API REST ---
+djangorestframework==3.18.1
+djangorestframework_simplejwt==5.5.1
+PyJWT==2.15.1
+
+# --- Filtros de consulta ---
+django-filter==26.1
+
+# --- Documentación OpenAPI 3 (Swagger UI y ReDoc) ---
+drf-spectacular==0.30.0
+inflection==0.5.1
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==2026.6.3
+uritemplate==4.2.0
+PyYAML==6.0.3
+attrs==26.1.0
+
+# --- PostgreSQL (driver psycopg 3) ---
+psycopg==3.3.6
+psycopg-binary==3.3.6
+
+# --- Configuración por variables de entorno (.env) ---
+python-decouple==3.8
+
+# --- Dependencias internas de Django ---
+asgiref==3.12.1
+sqlparse==0.6.0
+typing_extensions==4.16.0
+tzdata==2026.4

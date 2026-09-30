@@ -1,0 +1,37 @@
+# ============================================================
+# .gitignore — ARCHIVOS QUE NUNCA SE VERSIONAN
+# ============================================================
+
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Configuración local con credenciales reales
+.env
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos recolectados / subidos
+staticfiles/
+media/
+
+# Base de datos local (el proyecto usa PostgreSQL, nunca SQLite)
+*.sqlite3
+db.sqlite3
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Registros y cobertura
+*.log
+.coverage
+htmlcov/
