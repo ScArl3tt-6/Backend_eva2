@@ -156,6 +156,14 @@
                   <i class="bi bi-credit-card" aria-hidden="true"></i> Registrar el pago
                 </button>
               </form>
+
+              {# ===== Pago real con Webpay Plus (ambiente de integración) ===== #}
+              <form method="post" action="/panel/ordenes/{{ orden.pk }}/webpay/iniciar/" class="d-grid">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary">
+                  <i class="bi bi-wallet2" aria-hidden="true"></i> Pagar con Webpay
+                </button>
+              </form>
             {% endif %}
 
             {% if puede_entregar %}

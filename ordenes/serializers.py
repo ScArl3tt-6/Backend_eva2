@@ -189,3 +189,16 @@ class CambiarEstadoSerializer(serializers.Serializer):
         max_length=255,
         help_text="Motivo del cambio; queda registrado en el historial de la orden.",
     )
+
+
+# ============================================================
+# BLOQUE 6 — RESPUESTA AL INICIAR UN PAGO CON WEBPAY PLUS
+# POST /api/ordenes/{id}/webpay/iniciar/ no recibe cuerpo: solo
+# devuelve la URL del formulario de Transbank y el token, que el
+# cliente debe enviar por POST a esa URL como campo token_ws.
+# ============================================================
+class WebpayIniciarSerializer(serializers.Serializer):
+    """URL del formulario de pago de Transbank y el token de la transacción."""
+
+    url = serializers.URLField(read_only=True, help_text="URL del formulario de pago de Transbank.")
+    token = serializers.CharField(read_only=True, help_text="Token a enviar como token_ws.")

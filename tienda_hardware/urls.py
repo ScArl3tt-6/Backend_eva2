@@ -37,6 +37,7 @@ from catalogo import urls as catalogo_urls
 from core import urls as core_urls
 from core.views import redireccion_inicio
 from ordenes import urls as ordenes_urls
+from pagos import urls as pagos_urls
 from usuarios import urls as usuarios_urls
 
 # ============================================================
@@ -66,6 +67,7 @@ rutas_html = (
     + carro_urls.urlpatterns_html
     + ordenes_urls.urlpatterns_html
     + usuarios_urls.urlpatterns_html
+    + pagos_urls.urlpatterns_html
 )
 
 

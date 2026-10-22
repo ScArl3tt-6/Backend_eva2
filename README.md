@@ -421,6 +421,7 @@ Sin token la respuesta es **401**; con un token cuyo rol no corresponde, **403**
 |---|---|---|---|
 | POST | `/api/ordenes/checkout/` | Cliente | Crea la orden y **congela los precios** |
 | POST | `/api/ordenes/{id}/pagar/` | Cliente dueño | **Descuenta el stock** de forma atómica |
+| POST | `/api/ordenes/{id}/webpay/iniciar/` | Cliente dueño | Crea la transacción en Webpay Plus (ver `DEFENSA.md` §10) |
 | GET | `/api/mis-ordenes/` | Cliente | Solo sus órdenes |
 | GET | `/api/mis-ordenes/{id}/` | Cliente | Detalle, total e historial |
 | GET | `/api/ordenes/` | Administrador | Todas las órdenes, con filtros |
@@ -519,6 +520,8 @@ modo que el control de stock y de concurrencia es idéntico por ambos caminos.
 | `/panel/usuarios/` | CRUD de usuarios, con elección de rol |
 | `/panel/carros/` | Selector «Ver carro de: [cliente]» y operación completa del carro |
 | `/panel/ordenes/` | Listado con filtros y ficha con historial y botones de transición |
+| `/panel/ordenes/<id>/webpay/iniciar/` | Inicia un pago real con Webpay Plus (solo POST) |
+| `/webpay/retorno/` | Retorno de Transbank tras el pago (ver `DEFENSA.md` §10) |
 | `/documentacion/` | Guía del sistema con la matriz de roles y el flujo de negocio |
 
 ### Ninguna dirección muestra un 404
@@ -813,3 +816,24 @@ de estados y la revisión final del funcionamiento y de los textos son propias. 
 IA se usó como asistente de programación y redacción, del mismo modo que se usa la
 documentación oficial o un compañero de trabajo con quien revisar una solución, y
 todo el resultado fue comprobado ejecutándolo.
+
+## 15. Pago con Transbank Webpay Plus
+
+Además del pago simulado (botón «Registrar el pago»), la orden se puede pagar
+de verdad contra **Webpay Plus en ambiente de integración** (sin dinero real):
+botón «Pagar con Webpay» en `/panel/ordenes/<id>/` y
+`POST /api/ordenes/<id>/webpay/iniciar/` en la API.
+
+El flujo es: se crea la transacción en Transbank (`pagos/servicios.py`), el
+cliente paga en el formulario real de Webpay, Transbank redirige a
+`/webpay/retorno/` y el servidor confirma el resultado **servidor a
+servidor** (`Transaction.commit`). Si Transbank aprueba, se descuenta el
+stock con la misma función `pagar_orden()` que ya existía; si aprueba pero ya
+no hay stock, se devuelve el dinero automáticamente (`Transaction.refund`) y
+la orden queda `PENDIENTE`. El detalle completo, con diagrama y las tarjetas
+de prueba oficiales de Transbank, está en `DEFENSA.md`, sección 10.
+
+Variables nuevas en `.env` (ver `.env.example`): `TRANSBANK_AMBIENTE`,
+`TRANSBANK_CODIGO_COMERCIO`, `TRANSBANK_API_KEY`. En desarrollo local pueden
+dejarse sin definir: se usan las constantes públicas del propio SDK para el
+ambiente de integración.

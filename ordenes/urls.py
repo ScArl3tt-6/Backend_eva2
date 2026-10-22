@@ -12,7 +12,13 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from . import views_html
-from .views import CheckoutView, MisOrdenesViewSet, OrdenAdminViewSet, PagarOrdenView
+from .views import (
+    CheckoutView,
+    MisOrdenesViewSet,
+    OrdenAdminViewSet,
+    PagarOrdenView,
+    WebpayIniciarView,
+)
 
 # ============================================================
 # BLOQUE 1 — ROUTERS DE LA API
@@ -27,6 +33,7 @@ router.register("ordenes", OrdenAdminViewSet, basename="orden")
 urlpatterns = [
     path("ordenes/checkout/", CheckoutView.as_view(), name="checkout"),
     path("ordenes/<int:pk>/pagar/", PagarOrdenView.as_view(), name="pagar-orden"),
+    path("ordenes/<int:pk>/webpay/iniciar/", WebpayIniciarView.as_view(), name="webpay-iniciar-orden"),
     path("", include(router.urls)),
 ]
 
@@ -47,6 +54,11 @@ urlpatterns_html = [
         "panel/ordenes/<int:objeto_id>/pagar/",
         views_html.orden_pagar,
         name="panel-orden-pagar",
+    ),
+    path(
+        "panel/ordenes/<int:objeto_id>/webpay/iniciar/",
+        views_html.orden_pagar_con_webpay,
+        name="panel-orden-webpay-iniciar",
     ),
     path(
         "panel/ordenes/<int:objeto_id>/estado/",

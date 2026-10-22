@@ -24,6 +24,7 @@ una explicación breve para defenderlo oralmente.
 7. [Guion de la demostración de 5 minutos](#7-guion-de-la-demostración-de-5-minutos)
 8. [Preguntas probables y cómo responderlas](#8-preguntas-probables-y-cómo-responderlas)
 9. [Seguridad del panel: por qué ahora exige login](#9-seguridad-del-panel-por-qué-ahora-exige-login)
+10. [Pago con Transbank Webpay Plus](#10-pago-con-transbank-webpay-plus)
 
 ---
 
@@ -855,3 +856,139 @@ se hizo exactamente donde importa: en los métodos que modifican datos.
 - `usuarios/tests.py` → `PruebasSeguridadHtmlUsuarios` y `PruebasLoginDelPanel`:
   sin sesión no se puede editar ni dar de baja un usuario; con sesión de cliente
   tampoco; el login rechaza a quien no es administrador; el logout exige `POST`.
+
+---
+
+## 10. Pago con Transbank Webpay Plus
+
+### 10.1 El flujo, paso a paso
+
+```
+1. Tienda (HardPoint PC)
+   El cliente tiene una orden PENDIENTE y pulsa «Pagar con Webpay».
+   iniciar_pago_webpay() (pagos/servicios.py) valida que la orden esté
+   PENDIENTE y con total > 0, y crea la transacción en Transbank:
+   Transaction.create(buy_order, session_id, monto, return_url).
+   Se guarda un PagoWebpay en estado INICIADO.
+        │
+        ▼
+2. Webpay (Transbank)
+   El navegador hace un POST con token_ws al formulario de Transbank
+   (templates/pagos/redireccion_webpay.html se autoenvía). El cliente
+   paga con una tarjeta de prueba (ver 10.5).
+        │
+        ▼
+3. Retorno a la tienda — POST/GET /webpay/retorno/
+   Transbank redirige el NAVEGADOR del cliente de vuelta. Según lo que
+   venga en la petición, puede ser un pago normal, una anulación, un
+   timeout o un error de formulario (ver 10.2).
+        │
+        ▼
+4. Commit — confirmar_pago_webpay(token)
+   Para el caso normal, el servidor llama a Transaction.commit(token):
+   una petición servidor a servidor directa a Transbank. La respuesta
+   de ESTA llamada es la única fuente de verdad (ver 10.3).
+        │
+        ▼
+5. pagar_orden() (ya existía en ordenes/servicios.py)
+   Si Transbank aprobó (status AUTHORIZED y response_code 0), se llama
+   a la misma función que ya usaban el botón «Registrar el pago» y la
+   API: bloquea la orden y los productos, descuenta el stock de forma
+   atómica y marca la orden PAGADA.
+```
+
+### 10.2 Los cuatro casos del retorno
+
+Webpay Plus vuelve siempre a la misma URL (`/webpay/retorno/`,
+`pagos/views_html.py` → `retorno_webpay`), y la combinación de
+parámetros que llega es la que indica qué pasó — así lo documenta
+Transbank:
+
+| Parámetros que llegan | Caso | Qué se hace |
+|---|---|---|
+| `token_ws` | Pago normal | `confirmar_pago_webpay()`: hace el commit |
+| `token_ws` + `TBK_TOKEN` | Error de formulario | No se hace commit (estado ambiguo); se marca `ERROR` |
+| `TBK_TOKEN` + `TBK_ORDEN_COMPRA` + `TBK_ID_SESION` | El cliente anuló en el formulario | Se marca `ANULADO_POR_USUARIO`, sin commit |
+| `TBK_ORDEN_COMPRA` + `TBK_ID_SESION` (sin token) | Venció el tiempo (timeout) | Se marca `EXPIRADO`, sin commit |
+
+### 10.3 Por qué `retorno_webpay` es `@csrf_exempt` (y por qué es seguro)
+
+Esa vista recibe el `POST` que genera el **formulario de Transbank**, no un
+formulario de HardPoint PC: el navegador del cliente nunca tuvo la
+oportunidad de llevar un token CSRF nuestro, porque la página que lo generó
+no era nuestra. Exigir CSRF ahí bloquearía siempre la vuelta del pago.
+
+Que sea `@csrf_exempt` es seguro porque **nunca se confía en los datos que
+trae esa petición del navegador** para decidir si se cobra algo: el único
+dato que importa es la respuesta de `Transaction.commit(token)`, una llamada
+**servidor a servidor** directa a Transbank. Si alguien falsificara la
+petición de vuelta con un token inventado, Transbank simplemente respondería
+que ese token no existe o no está autorizado; no hay manera de fabricar una
+respuesta de aprobación sin que exista una transacción real y aprobada en
+Transbank.
+
+### 10.4 Por qué `confirmar_pago_webpay()` es idempotente
+
+El `token` de Transbank es único y queda guardado en `PagoWebpay.token`. Antes
+de hacer cualquier cosa, la función comprueba el estado guardado:
+
+```python
+if pago.estado != EstadoPagoWebpay.INICIADO:
+    return pago  # ya se procesó antes: no se cobra ni se descuenta de nuevo
+```
+
+Esto cubre dos escenarios reales: el cliente recarga la página de resultado
+(el navegador repite la misma petición de vuelta), o Transbank reintenta la
+redirección. En ambos casos, como el estado ya no es `INICIADO`, no se vuelve
+a llamar a `pagar_orden()`. Y para que dos peticiones con el mismo token que
+llegaran *a la vez* no se pisen, la función que aplica el resultado
+(`_registrar_resultado_commit`) vuelve a leer el pago con
+`select_for_update()` dentro de una transacción: la segunda espera a que la
+primera termine y, al releer, ve que ya no está en `INICIADO` y no hace nada.
+Es el mismo patrón de `pagar_orden()` (bloquear, revalidar, recién entonces
+actuar).
+
+### 10.5 Qué pasa si no hay stock (el caso crítico)
+
+Puede pasar que Transbank apruebe el pago —el banco ya retuvo el dinero del
+cliente— y que, en el instante de descontar el stock, otra persona se haya
+quedado con la última unidad. `pagar_orden()` lanza `StockInsuficienteError`
+exactamente igual que en el flujo normal, pero acá no basta con revertir: el
+dinero del cliente sigue retenido en Transbank. Por eso:
+
+1. Se llama a `Transaction.refund(token, monto)`: Transbank devuelve el
+   dinero completo (anulación).
+2. El `PagoWebpay` queda en estado `REEMBOLSADO`.
+3. La orden permanece `PENDIENTE` con un mensaje claro en la pantalla de
+   resultado.
+
+Nunca queda un cliente cobrado sin que se le haya descontado el producto.
+Prueba que lo demuestra: `pagos/tests.py` →
+`test_aprobado_sin_stock_hace_refund_y_la_orden_sigue_pendiente`.
+
+### 10.6 Tarjetas y credenciales de prueba (ambiente de integración)
+
+Publicadas por Transbank en su documentación oficial para desarrolladores
+(transbankdevelopers.cl). No mueven dinero real.
+
+| Tarjeta | Número | CVV | Resultado |
+|---|---|---|---|
+| VISA Crédito | `4051 8856 0044 6623` | `123` | Aprobada |
+| AMEX | `3700 0000 0002 032` | `1234` | Aprobada |
+| Mastercard Crédito | `5186 0595 5959 0568` | `123` | **Rechazada** |
+| Redcompra (débito) | `4051 8842 3993 7763` | — | Aprobada |
+| Redcompra (débito) | `5186 0085 4123 3829` | — | **Rechazada** |
+
+La fecha de expiración puede ser cualquiera posterior a la actual. Si Webpay
+pide autenticación adicional (RUT y clave, para las tarjetas que simulan el
+banco emisor): **RUT `11.111.111-1`, clave `123`**.
+
+### 10.7 Por qué una app nueva (`pagos`) y no un campo más en `ordenes`
+
+El proyecto ya separa por dominio (`usuarios`, `catalogo`, `carro`, `ordenes`);
+un medio de pago externo es un dominio propio, igual que los otros. Además,
+una orden puede tener **más de un intento** de pago (uno rechazado, luego uno
+aprobado): `PagoWebpay` es ese historial, con `orden` como clave foránea
+`PROTECT` (igual criterio que el resto del proyecto: nunca se borra un
+registro con valor de negocio). `ordenes/servicios.py` sigue siendo el único
+lugar que descuenta stock; `pagos/servicios.py` solo lo invoca.

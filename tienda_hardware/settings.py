@@ -103,6 +103,7 @@ APPS_NEGOCIO = [
     "catalogo.apps.CatalogoConfig",
     "carro.apps.CarroConfig",
     "ordenes.apps.OrdenesConfig",
+    "pagos.apps.PagosConfig",
 ]
 
 # El orden de esta lista no es decorativo: "core" va PRIMERO, antes de
@@ -215,6 +216,26 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_URL = "core:panel-login"
 LOGIN_REDIRECT_URL = "/panel/"
 LOGOUT_REDIRECT_URL = "/"
+
+# ============================================================
+# BLOQUE 8-C — TRANSBANK WEBPAY PLUS (AMBIENTE DE INTEGRACIÓN)
+# TRANSBANK_AMBIENTE acepta "integracion" (por omisión, sin dinero
+# real) o "produccion". Los valores por omisión de código de
+# comercio y API Key NO son un secreto propio: son las constantes
+# públicas que el propio SDK de Transbank publica para el ambiente
+# de integración (IntegrationCommerceCodes.WEBPAY_PLUS e
+# IntegrationApiKeys.WEBPAY), documentadas también en la web oficial
+# de Transbank. En producción estas tres variables SÍ deben venir
+# del .env del servidor, con las credenciales reales del comercio.
+# ============================================================
+from transbank.common.integration_api_keys import IntegrationApiKeys
+from transbank.common.integration_commerce_codes import IntegrationCommerceCodes
+
+TRANSBANK_AMBIENTE = config("TRANSBANK_AMBIENTE", default="integracion")
+TRANSBANK_CODIGO_COMERCIO = config(
+    "TRANSBANK_CODIGO_COMERCIO", default=IntegrationCommerceCodes.WEBPAY_PLUS
+)
+TRANSBANK_API_KEY = config("TRANSBANK_API_KEY", default=IntegrationApiKeys.WEBPAY)
 
 
 # ============================================================

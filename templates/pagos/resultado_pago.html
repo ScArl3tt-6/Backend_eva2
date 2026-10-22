@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load formato %}
+{% comment %} ============================================================
+   pagos/resultado_pago.html — RESULTADO DEL PAGO CON WEBPAY PLUS
+   Responsabilidad: mostrar, con el mismo diseño del resto del sitio,
+   el resultado de los cuatro casos posibles del retorno de Webpay
+   Plus (aprobado, rechazado, anulado por el usuario, expirado) más
+   los casos de error, con el código de autorización, los últimos 4
+   dígitos de la tarjeta, el monto y un botón para volver a la orden.
+
+   Nunca se decide aquí si el pago fue válido: eso ya lo decidió
+   pagos/servicios.py con el commit servidor a servidor. Esta
+   plantilla solo traduce "resultado" y "pago" a una pantalla.
+   ============================================================ {% endcomment %}
+
+{% block contenido %}
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-7">
+    <div class="tarjeta">
+
+      {% if resultado == "APROBADO" %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i> Pago aprobado</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">
+            Webpay Plus aprobó el pago y el stock de la orden ya se descontó.
+          </p>
+
+      {% elif resultado == "RECHAZADO" %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-x-circle-fill text-danger" aria-hidden="true"></i> Pago rechazado</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">
+            Webpay Plus no autorizó el pago. La orden sigue en estado PENDIENTE y
+            puede intentarlo de nuevo.
+          </p>
+
+      {% elif resultado == "REEMBOLSADO" %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-arrow-counterclockwise text-warning" aria-hidden="true"></i> Pago aprobado, pero sin stock</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">
+            Webpay Plus aprobó el pago, pero el producto se agotó justo antes de
+            poder descontarlo. El dinero <strong>se devolvió por completo</strong> en
+            Transbank y la orden sigue en PENDIENTE: no quedó ningún cobro sin su
+            producto.
+          </p>
+
+      {% elif resultado == "ANULADO_POR_USUARIO" %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-dash-circle text-secondary" aria-hidden="true"></i> Pago anulado</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">{{ mensaje }}</p>
+
+      {% elif resultado == "EXPIRADO" %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-clock-history text-secondary" aria-hidden="true"></i> Tiempo agotado</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">{{ mensaje }}</p>
+
+      {% else %}
+        <div class="tarjeta-cabecera">
+          <h2><i class="bi bi-exclamation-triangle-fill text-danger" aria-hidden="true"></i> No se pudo procesar el pago</h2>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <p class="texto-suave">{{ mensaje|default:"Ocurrió un error inesperado con Webpay Plus." }}</p>
+      {% endif %}
+
+        {% if pago %}
+          <div class="row g-3 mt-2">
+            <div class="col-6">
+              <p class="dato-etiqueta mb-1">Código de autorización</p>
+              <p class="dato-valor">{{ pago.authorization_code|default:"—" }}</p>
+            </div>
+            <div class="col-6">
+              <p class="dato-etiqueta mb-1">Tarjeta</p>
+              <p class="dato-valor">
+                {% if pago.card_number %}•••• {{ pago.card_number }}{% else %}—{% endif %}
+              </p>
+            </div>
+            <div class="col-6">
+              <p class="dato-etiqueta mb-1">Monto</p>
+              <p class="dato-valor">{{ pago.monto|clp }}</p>
+            </div>
+            <div class="col-6">
+              <p class="dato-etiqueta mb-1">Orden</p>
+              <p class="dato-valor">
+                <a href="/panel/ordenes/{{ pago.orden_id }}/">{{ pago.orden.codigo_corto }}</a>
+              </p>
+            </div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <a href="/panel/ordenes/{{ pago.orden_id }}/" class="btn btn-primary">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a la orden
+            </a>
+          </div>
+        {% else %}
+          <div class="d-grid mt-4">
+            <a href="/panel/ordenes/" class="btn btn-primary">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado de órdenes
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -22,8 +22,10 @@
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
+from transbank.error.transbank_error import TransbankError
 
 from core.utilidades import obtener_o_redirigir, panel_solo_lectura_o_administrador
+from pagos.servicios import ErrorDePago, iniciar_pago_webpay
 
 from .filtros import OrdenFilter
 from .forms import CambiarEstadoOrdenForm
@@ -170,6 +172,54 @@ def orden_pagar(request, objeto_id):
         "se descontó de cada producto.",
     )
     return redirect(f"{BASE_URL}{orden.pk}/")
+
+
+# ============================================================
+# BLOQUE 3-B — PAGAR CON WEBPAY PLUS
+# No reemplaza al botón «Registrar el pago» (BLOQUE 3): queda como
+# una forma nueva de pagar, pensada para que el administrador pueda
+# cobrar una orden simulando el formulario real de Transbank en
+# ambiente de integración. Crea la transacción (pagos/servicios.py)
+# y renderiza un formulario que se autoenvía al formulario de pago
+# de Transbank con el token recibido.
+# ============================================================
+@panel_solo_lectura_o_administrador
+def orden_pagar_con_webpay(request, objeto_id):
+    """Inicia un pago con Webpay Plus y redirige al formulario de Transbank."""
+    if request.method != "POST":
+        return redirect(f"{BASE_URL}{objeto_id}/")
+
+    orden, redireccion = obtener_o_redirigir(
+        Orden,
+        mensaje_error=f"No existe una orden con el id {objeto_id}.",
+        pk=objeto_id,
+    )
+    if redireccion is not None:
+        return redireccion(request)
+
+    # build_absolute_uri usa el esquema real de la petición (http en local,
+    # https en el servidor detrás de Nginx), así que la vuelta de Transbank
+    # nunca cae en una URL http:// en producción.
+    return_url = request.build_absolute_uri("/webpay/retorno/")
+
+    try:
+        pago = iniciar_pago_webpay(orden, return_url)
+    except ErrorDePago as excepcion:
+        messages.error(request, str(excepcion))
+        return redirect(f"{BASE_URL}{orden.pk}/")
+    except TransbankError:
+        messages.error(
+            request,
+            "No se pudo contactar a Webpay Plus en este momento. Intente de nuevo.",
+        )
+        return redirect(f"{BASE_URL}{orden.pk}/")
+
+    contexto = {
+        "titulo_pagina": "Redirigiendo a Webpay",
+        "url_pago": pago.url_pago,
+        "token": pago.token,
+    }
+    return render(request, "pagos/redireccion_webpay.html", contexto)
 
 
 # ============================================================

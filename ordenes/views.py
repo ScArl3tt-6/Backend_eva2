@@ -30,7 +30,9 @@ from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from transbank.error.transbank_error import TransbankError
 
+from pagos.servicios import ErrorDePago, iniciar_pago_webpay
 from usuarios.permisos import EsAdministrador, EsCliente, EsPropietarioDeLaOrden
 
 from .filtros import OrdenFilter
@@ -39,6 +41,7 @@ from .serializers import (
     CambiarEstadoSerializer,
     OrdenResumenSerializer,
     OrdenSerializer,
+    WebpayIniciarSerializer,
 )
 from .servicios import (
     CarroVacioError,
@@ -282,6 +285,80 @@ class PagarOrdenView(GenericAPIView):
                 "stock_descontado": True,
                 "orden": OrdenSerializer(orden).data,
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+# ============================================================
+# BLOQUE 3-B — INICIAR UN PAGO CON WEBPAY PLUS
+# No sustituye a POST /api/ordenes/{id}/pagar/ (que sigue existiendo
+# tal cual): es una forma nueva de pagar, a través de la pasarela de
+# Transbank en ambiente de integración. El cliente recibe la url y
+# el token y debe enviarlos por POST (campo token_ws) al formulario
+# de Transbank; Webpay vuelve al sitio por /webpay/retorno/
+# (pagos/views_html.py), que confirma el pago servidor a servidor.
+# ============================================================
+@extend_schema(
+    tags=["Órdenes"],
+    summary="Iniciar un pago con Webpay Plus",
+    description=(
+        "Crea la transacción en **Webpay Plus** (ambiente de integración) para "
+        "una orden `PENDIENTE` y devuelve la URL del formulario de pago de "
+        "Transbank junto con el token.\n\n"
+        "El cliente (navegador) debe enviar un formulario por **POST** a `url` "
+        "con un único campo `token_ws` igual al `token` devuelto. Transbank "
+        "redirige luego al sitio, que confirma el resultado servidor a servidor "
+        "(no se descuenta stock aquí, recién al confirmar el pago)."
+    ),
+    request=None,
+    responses={
+        200: OpenApiResponse(response=WebpayIniciarSerializer, description="Transacción creada en Transbank."),
+        400: OpenApiResponse(description="La orden no está PENDIENTE o no tiene productos."),
+        403: OpenApiResponse(description="La orden pertenece a otro cliente."),
+    },
+)
+class WebpayIniciarView(GenericAPIView):
+    """POST /api/ordenes/{id}/webpay/iniciar/ — crea la transacción en Transbank."""
+
+    permission_classes = [EsCliente, EsPropietarioDeLaOrden]
+    serializer_class = WebpayIniciarSerializer
+    queryset = Orden.objects.all()
+
+    def post(self, request, pk=None):
+        """Inicia el pago con Webpay Plus para la orden del cliente dueño."""
+        orden = Orden.objects.filter(pk=pk).first()
+        if orden is None:
+            return Response(
+                {
+                    "error": True,
+                    "mensaje": f"No existe una orden con el id {pk}.",
+                    "detalle": None,
+                    "redireccion": "/",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Permiso de objeto: un cliente jamás inicia el pago de otro.
+        self.check_object_permissions(request, orden)
+
+        return_url = request.build_absolute_uri("/webpay/retorno/")
+
+        try:
+            pago = iniciar_pago_webpay(orden, return_url)
+        except ErrorDePago as error:
+            return _respuesta_error_negocio(error)
+        except TransbankError:
+            return Response(
+                {
+                    "error": True,
+                    "mensaje": "No se pudo contactar a Webpay Plus en este momento. Intente de nuevo.",
+                    "detalle": None,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(
+            WebpayIniciarSerializer({"url": pago.url_pago, "token": pago.token}).data,
             status=status.HTTP_200_OK,
         )
 

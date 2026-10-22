@@ -42,6 +42,19 @@ psycopg-binary==3.3.6
 # --- Configuración por variables de entorno (.env) ---
 python-decouple==3.8
 
+# --- Pagos: Transbank Webpay Plus (ambiente de integración) ---
+transbank-sdk==6.1.0
+requests==2.34.2
+marshmallow==3.26.1
+packaging==26.3
+certifi==2026.10.19
+charset-normalizer==3.5.2
+idna==3.20
+urllib3==2.8.0
+
+# --- Servidor de aplicación WSGI para producción (systemd/Nginx) ---
+gunicorn==26.2.0
+
 # --- Dependencias internas de Django ---
 asgiref==3.12.1
 sqlparse==0.6.0

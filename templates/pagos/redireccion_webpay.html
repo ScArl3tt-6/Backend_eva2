@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% comment %} ============================================================
+   pagos/redireccion_webpay.html — REDIRECCIÓN AL FORMULARIO DE WEBPAY
+   Responsabilidad: enviar el navegador al formulario de pago real de
+   Transbank (ambiente de integración) con un formulario que se envía
+   solo, con el único campo que Webpay Plus exige: token_ws.
+
+   Por qué un formulario y no un simple enlace: Transbank exige que la
+   llegada al formulario de pago sea un POST con token_ws, no un GET
+   con el token en la URL (que quedaría en el historial del navegador
+   y en los logs del servidor).
+   ============================================================ {% endcomment %}
+
+{% block contenido %}
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6 text-center">
+    <div class="tarjeta">
+      <div class="tarjeta-cuerpo py-5">
+        <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+        <h2>Redirigiendo a Webpay…</h2>
+        <p class="texto-suave">
+          Si no es redirigido en unos segundos, pulse el botón.
+        </p>
+        <form method="post" action="{{ url_pago }}" id="formulario-webpay">
+          <input type="hidden" name="token_ws" value="{{ token }}">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-credit-card" aria-hidden="true"></i> Continuar a Webpay
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts_extra %}
+  <script>
+    document.getElementById("formulario-webpay").submit();
+  </script>
+{% endblock %}
