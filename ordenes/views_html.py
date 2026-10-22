@@ -12,14 +12,18 @@
 #   · Cancelar una orden pagada repone el stock automáticamente.
 #   · Solo se ofrecen las transiciones que la máquina de estados
 #     permite desde el estado actual.
+#
+# Cualquiera puede VER el listado y la ficha de una orden; pagar o
+# cambiar su estado exige una sesión de Administrador de TI (ver
+# panel_solo_lectura_o_administrador en core/utilidades.py), que
+# además queda registrado como autor del cambio en el historial.
 # ============================================================
 
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 
-from core.utilidades import obtener_o_redirigir
-from usuarios.models import Rol, Usuario
+from core.utilidades import obtener_o_redirigir, panel_solo_lectura_o_administrador
 
 from .filtros import OrdenFilter
 from .forms import CambiarEstadoOrdenForm
@@ -128,6 +132,7 @@ def orden_detalle(request, objeto_id):
 # producto por producto cuánto se pidió y cuánto había, y la orden
 # queda intacta en PENDIENTE.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def orden_pagar(request, objeto_id):
     """Registra el pago de la orden descontando el stock de forma atómica."""
     if request.method != "POST":
@@ -142,7 +147,7 @@ def orden_pagar(request, objeto_id):
         return redireccion(request)
 
     try:
-        orden = pagar_orden(orden, usuario=_autor_del_cambio(orden))
+        orden = pagar_orden(orden, usuario=request.user)
     except StockInsuficienteError as excepcion:
         # Mensaje explicativo: qué producto faltó y en qué cantidad.
         detalle = " ".join(
@@ -174,6 +179,7 @@ def orden_pagar(request, objeto_id):
 # la decide cambiar_estado_orden; aquí solo se traduce el resultado
 # a un mensaje flash.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def orden_cambiar_estado(request, objeto_id):
     """Cambia el estado de la orden aplicando las transiciones permitidas."""
     if request.method != "POST":
@@ -198,7 +204,7 @@ def orden_cambiar_estado(request, objeto_id):
         orden = cambiar_estado_orden(
             orden,
             nuevo_estado,
-            usuario=_autor_del_cambio(orden),
+            usuario=request.user,
             observacion=observacion,
         )
     except StockInsuficienteError as excepcion:
@@ -238,19 +244,3 @@ def orden_cambiar_estado(request, objeto_id):
         )
 
     return redirect(f"{BASE_URL}{orden.pk}/")
-
-
-# ============================================================
-# BLOQUE 5 — AUTOR DEL CAMBIO EN EL HISTORIAL
-# Las pantallas HTML no tienen login, así que no hay un usuario
-# autenticado que firmar en el historial. Para no perder la
-# trazabilidad se atribuye el cambio al primer administrador de TI
-# activo, que es quien opera el panel de gestión.
-# ============================================================
-def _autor_del_cambio(orden):
-    """Devuelve el administrador de TI que se registra como autor del cambio."""
-    return (
-        Usuario.objects.filter(rol=Rol.ADMINISTRADOR, is_active=True)
-        .order_by("id")
-        .first()
-    )

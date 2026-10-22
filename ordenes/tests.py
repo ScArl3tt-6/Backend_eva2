@@ -880,7 +880,12 @@ class PruebasConcurrencia(TransactionTestCase):
 # control de stock es idéntico al de la API.
 # ============================================================
 class PruebasHtmlOrdenes(TestCase):
-    """El panel de órdenes paga, entrega y cancela con las mismas reglas."""
+    """El panel de órdenes paga, entrega y cancela con las mismas reglas.
+
+    Se puede VER sin iniciar sesión, pero EDITAR (pagar, cambiar de
+    estado) exige una sesión de Administrador de TI; por eso setUp()
+    inicia sesión con cls.administrador antes de cada prueba.
+    """
 
     @classmethod
     def setUpTestData(cls):
@@ -900,6 +905,10 @@ class PruebasHtmlOrdenes(TestCase):
             categoria=cls.categoria, marca=cls.marca,
             precio=Decimal("269990"), stock=8,
         )
+
+    def setUp(self):
+        """Inicia sesión como administrador: las pruebas de este archivo escriben."""
+        self.client.force_login(self.administrador)
 
     def _crear_orden(self, cantidad=2):
         """Crea una orden PENDIENTE con el servicio de checkout."""
@@ -1032,3 +1041,59 @@ class PruebasHtmlOrdenes(TestCase):
 
         self.assertContains(respuesta, "Historial de estados")
         self.assertContains(respuesta, "Pago aprobado")
+
+
+# ============================================================
+# BLOQUE 14 — SIN LOGIN SE VE, PERO NO SE PAGA NI SE CAMBIA DE ESTADO
+# Corrige el agujero de seguridad detectado en el panel: cualquiera
+# podía pagar o cancelar la orden de cualquier cliente. Ahora GET
+# sigue abierto a todos; POST exige una sesión de Administrador de TI.
+# ============================================================
+class PruebasSeguridadHtmlOrdenes(TestCase):
+    """Sin iniciar sesión se puede ver una orden, pero no pagarla ni cambiarla."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Cliente, producto y una orden PENDIENTE para probar sin sesión de administrador."""
+        cls.cliente = Usuario.objects.create_user(
+            username="seg_orden_cliente", email="seg_orden_cliente@hardpointpc.cl",
+            password="Compra.Segura.2026", rol=Rol.CLIENTE,
+        )
+        cls.categoria = Categoria.objects.create(nombre="Memorias RAM", icono="bi-memory")
+        cls.marca = Marca.objects.create(nombre="Kingston")
+        cls.producto = Producto.objects.create(
+            sku="RAM-SEG-01", nombre="Memoria de prueba de seguridad",
+            categoria=cls.categoria, marca=cls.marca, precio=Decimal("49990"), stock=10,
+        )
+        carro = obtener_carro(cls.cliente)
+        agregar_producto(carro, cls.producto, 2)
+        cls.orden = realizar_checkout(cls.cliente)
+
+    def test_anonimo_puede_ver_la_orden_de_cualquier_cliente(self):
+        """Ver la ficha de la orden sigue sin exigir sesión."""
+        respuesta = self.client.get(f"/panel/ordenes/{self.orden.id}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "seg_orden_cliente")
+
+    def test_anonimo_no_puede_pagar_la_orden_de_otro(self):
+        """Sin sesión de administrador, el pago no se ejecuta."""
+        respuesta = self.client.post(f"/panel/ordenes/{self.orden.id}/pagar/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, EstadoOrden.PENDIENTE)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 10, "El pago bloqueado no debe tocar el stock.")
+
+    def test_cliente_autenticado_sin_rol_administrador_tampoco_puede_cambiar_estado(self):
+        """Estar logueado no basta: el rol debe ser ADMINISTRADOR."""
+        self.client.force_login(self.cliente)
+
+        respuesta = self.client.post(
+            f"/panel/ordenes/{self.orden.id}/estado/", {"estado": "CANCELADO"}
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.orden.refresh_from_db()
+        self.assertEqual(self.orden.estado, EstadoOrden.PENDIENTE)

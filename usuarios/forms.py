@@ -14,6 +14,7 @@
 # ============================================================
 
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
@@ -143,3 +144,41 @@ class UsuarioForm(forms.ModelForm):
             usuario.save()
 
         return usuario
+
+
+# ============================================================
+# BLOQUE 4 — LOGIN DEL PANEL DE ADMINISTRACIÓN
+# El panel (/panel/...) se puede ver sin iniciar sesión, pero
+# editar algo (pagar una orden, vaciar un carro, dar de baja un
+# usuario) exige ahora una sesión de Administrador de TI.
+#
+# Se reutiliza AuthenticationForm, la misma que usa
+# django.contrib.auth.views.LoginView: la contraseña nunca se
+# compara a mano, la valida authenticate() de Django. Lo único que
+# se agrega es una comprobación extra en confirm_login_allowed: la
+# cuenta debe tener rol ADMINISTRADOR, o el login se rechaza aunque
+# la contraseña sea correcta.
+# ============================================================
+class FormularioLoginAdministrador(AuthenticationForm):
+    """Login de sesión del panel: exige además el rol ADMINISTRADOR."""
+
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "no_admin": "Esta cuenta no tiene permisos de administrador de TI.",
+    }
+
+    def __init__(self, *args, **kwargs):
+        """Agrega las clases de Bootstrap a los campos heredados."""
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {"class": "form-control", "autofocus": True, "placeholder": "admin_ti"}
+        )
+        self.fields["password"].widget.attrs.update(
+            {"class": "form-control", "placeholder": "••••••••"}
+        )
+
+    def confirm_login_allowed(self, user):
+        """Además de is_active, exige que el rol sea ADMINISTRADOR."""
+        super().confirm_login_allowed(user)
+        if not user.es_administrador:
+            raise ValidationError(self.error_messages["no_admin"], code="no_admin")

@@ -124,7 +124,17 @@
     </div>
   {% endif %}
 
+  {% if not request.user.is_staff %}
+    <div class="alert alert-info" role="alert">
+      <i class="bi bi-lock me-1" aria-hidden="true"></i>
+      Está viendo este carro en modo solo lectura. Para agregar, quitar, cambiar
+      cantidades, vaciarlo o hacer el checkout, inicie sesión como
+      <a href="{% url 'core:panel-login' %}">administrador</a>.
+    </div>
+  {% endif %}
+
   {# ===== BLOQUE 5: AGREGAR UN PRODUCTO ===== #}
+  {% if request.user.is_staff %}
   <div class="tarjeta mb-4">
     <div class="tarjeta-cabecera">
       <h2><i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar un producto al carro</h2>
@@ -161,12 +171,13 @@
       </p>
     </div>
   </div>
+  {% endif %}
 
   {# ===== BLOQUE 6: CONTENIDO DEL CARRO ===== #}
   <div class="tarjeta">
     <div class="tarjeta-cabecera">
       <h2><i class="bi bi-cart3" aria-hidden="true"></i> Contenido del carro</h2>
-      {% if items %}
+      {% if items and request.user.is_staff %}
         <div class="d-flex flex-wrap gap-2">
           <form method="post" action="/panel/carros/vaciar/" class="d-inline"
                 data-confirmar="¿Confirma vaciar el carro de {{ cliente.username }}? Los ítems quedan con activo = false, no se borran.">
@@ -214,6 +225,7 @@
                 </td>
                 <td class="numerico">{{ item.precio_vigente|clp }}</td>
                 <td>
+                  {% if request.user.is_staff %}
                   <form method="post" action="/panel/carros/actualizar/{{ item.producto_id }}/"
                         class="d-flex align-items-center gap-2">
                     {% csrf_token %}
@@ -225,6 +237,9 @@
                       <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
                     </button>
                   </form>
+                  {% else %}
+                    {{ item.cantidad }}
+                  {% endif %}
                 </td>
                 <td class="numerico"><span class="precio">{{ item.subtotal|clp }}</span></td>
                 <td>
@@ -239,6 +254,7 @@
                   {% endif %}
                 </td>
                 <td>
+                  {% if request.user.is_staff %}
                   <form method="post" action="/panel/carros/quitar/{{ item.producto_id }}/"
                         data-confirmar="¿Quitar «{{ item.producto.nombre }}» del carro?">
                     {% csrf_token %}
@@ -247,6 +263,7 @@
                       <i class="bi bi-x-lg" aria-hidden="true"></i>
                     </button>
                   </form>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}

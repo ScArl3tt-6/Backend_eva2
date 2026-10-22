@@ -496,10 +496,14 @@ Sin token la respuesta es **401**; con un token cuyo rol no corresponde, **403**
 
 ## 8. Pantallas HTML
 
-Las pantallas HTML **no tienen login**: la seguridad por roles vive en la API JWT.
-Usan el ORM, `ModelForm` con validación y mensajes flash, y llaman a las **mismas
-funciones de servicio** que la API, de modo que el control de stock y de
-concurrencia es idéntico por ambos caminos.
+Las pantallas HTML se pueden **ver sin iniciar sesión** (igual que la API deja
+leer el catálogo sin token), pero **editar algo** — pagar una orden, operar el
+carro de un cliente, o crear/editar/dar de baja un usuario o un producto — exige
+una sesión de **Administrador de TI** en `/panel/login/`. Es una sesión de
+Django (cookies), independiente del JWT de la API. Ver el detalle y el motivo en
+`DEFENSA.md`, sección 9. Las pantallas usan el ORM, `ModelForm` con validación y
+mensajes flash, y llaman a las **mismas funciones de servicio** que la API, de
+modo que el control de stock y de concurrencia es idéntico por ambos caminos.
 
 | Ruta | Contenido |
 |---|---|
@@ -507,6 +511,8 @@ concurrencia es idéntico por ambos caminos.
 | `/catalogo/` | Catálogo público con filtros, búsqueda, orden y paginación |
 | `/catalogo/<id>/` | Ficha del componente (SKU, marca, categoría, precio, stock) |
 | `/panel/` | Panel de gestión con tarjetas hacia cada módulo |
+| `/panel/login/` | Inicio de sesión de administrador (exige rol ADMINISTRADOR) |
+| `/panel/logout/` | Cierre de sesión (solo POST) |
 | `/panel/categorias/` | CRUD de categorías con baja lógica y reactivación |
 | `/panel/marcas/` | CRUD de marcas |
 | `/panel/productos/` | CRUD de productos |

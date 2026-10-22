@@ -50,6 +50,30 @@ ALLOWED_HOSTS = config(
     cast=Csv(),
 )
 
+# ============================================================
+# BLOQUE 3-B — HTTPS DETRÁS DE UN PROXY (NGINX + LET'S ENCRYPT)
+# En local DETRAS_DE_PROXY_HTTPS queda en False y nada cambia: el
+# sitio sigue funcionando por HTTP, sin cookies "Secure" ni HSTS,
+# igual que hoy.
+#
+# En el servidor (Nginx con "include proxy_params", que ya manda
+# X-Forwarded-Proto) se activa esta variable. Sin ella, Django no
+# tenía forma de saber que la conexión real del navegador era HTTPS
+# (Gunicorn la recibe por HTTP desde Nginx) y los formularios
+# fallaban con 403 CSRF: la cookie CSRF se pedía "Secure" para una
+# petición que Django creía insegura.
+# ============================================================
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+DETRAS_DE_PROXY_HTTPS = config("DETRAS_DE_PROXY_HTTPS", default=False, cast=bool)
+
+if DETRAS_DE_PROXY_HTTPS:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # Bajo a propósito y sin "preload": alcanza para la defensa sin
+    # arriesgar dejar el dominio inaccesible por HSTS si algo falla.
+    SECURE_HSTS_SECONDS = 3600
+
 
 # ============================================================
 # BLOQUE 4 — APLICACIONES INSTALADAS
@@ -180,6 +204,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# ============================================================
+# BLOQUE 8-B — SESIÓN DEL PANEL DE ADMINISTRACIÓN
+# El panel (/panel/...) se puede ver sin iniciar sesión; lo que
+# exige login es EDITAR algo (ver core.utilidades.
+# panel_solo_lectura_o_administrador). Es una sesión de Django
+# (cookies), independiente del JWT que usa la API REST.
+# ============================================================
+LOGIN_URL = "core:panel-login"
+LOGIN_REDIRECT_URL = "/panel/"
+LOGOUT_REDIRECT_URL = "/"
 
 
 # ============================================================

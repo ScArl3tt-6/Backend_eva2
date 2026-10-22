@@ -18,7 +18,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import redirect, render
 
-from core.utilidades import obtener_o_redirigir
+from core.utilidades import obtener_o_redirigir, panel_solo_lectura_o_administrador
 
 from .forms import UsuarioForm
 from .models import Rol, Usuario
@@ -124,8 +124,9 @@ def usuario_detalle(request, objeto_id):
 # permite elegir el rol. Al editar, dejar la contraseña vacía
 # conserva la actual.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def usuario_formulario(request, objeto_id=None):
-    """Crea o edita un usuario eligiendo su rol."""
+    """Crea o edita un usuario eligiendo su rol. Solo el administrador escribe."""
     usuario = None
     if objeto_id is not None:
         usuario, redireccion = obtener_o_redirigir(
@@ -186,8 +187,9 @@ def usuario_formulario(request, objeto_id=None):
 # ni obtener un token, pero su historial de órdenes se conserva
 # intacto (las órdenes usan PROTECT sobre el usuario).
 # ============================================================
+@panel_solo_lectura_o_administrador
 def usuario_desactivar(request, objeto_id):
-    """Da de baja una cuenta sin borrarla, previa confirmación."""
+    """Da de baja una cuenta sin borrarla, previa confirmación. Solo el administrador escribe."""
     usuario, redireccion = obtener_o_redirigir(
         Usuario,
         mensaje_error=f"No existe el usuario con el id {objeto_id}.",
@@ -228,8 +230,12 @@ def usuario_desactivar(request, objeto_id):
     return render(request, "parciales/confirmar.html", contexto)
 
 
+@panel_solo_lectura_o_administrador
 def usuario_reactivar(request, objeto_id):
-    """Vuelve a habilitar una cuenta dada de baja."""
+    """Vuelve a habilitar una cuenta dada de baja. Solo el administrador escribe."""
+    if request.method != "POST":
+        return redirect(f"{BASE_URL}{objeto_id}/")
+
     usuario, redireccion = obtener_o_redirigir(
         Usuario,
         mensaje_error=f"No existe el usuario con el id {objeto_id}.",

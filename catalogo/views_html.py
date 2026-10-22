@@ -6,8 +6,11 @@
 #
 # Decisiones que conviene poder explicar:
 #   · Las pantallas usan el ORM y ModelForm, con mensajes flash de
-#     django.contrib.messages. No tienen login: la seguridad por
-#     roles vive en la API JWT, tal como pide el enunciado.
+#     django.contrib.messages. El catálogo público y los listados
+#     de gestión se pueden VER sin iniciar sesión; crear, editar,
+#     dar de baja o reactivar un registro exige una sesión de
+#     Administrador de TI (panel_solo_lectura_o_administrador, en
+#     core/utilidades.py).
 #   · El catálogo público reutiliza ProductoFilter, el MISMO
 #     FilterSet de django-filter que usa GET /api/productos/, así
 #     que los filtros se comportan igual en la API y en el HTML.
@@ -22,7 +25,11 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import redirect, render
 
-from core.utilidades import booleano_de_texto, obtener_o_redirigir
+from core.utilidades import (
+    booleano_de_texto,
+    obtener_o_redirigir,
+    panel_solo_lectura_o_administrador,
+)
 
 from .filtros import ProductoFilter
 from .forms import CategoriaForm, MarcaForm, ProductoForm
@@ -273,8 +280,9 @@ def panel_detalle(request, entidad, objeto_id):
 # Al guardar deja un mensaje flash y vuelve al listado; si el
 # formulario trae errores, se vuelven a mostrar campo por campo.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def panel_formulario(request, entidad, objeto_id=None):
-    """Crea o edita un registro del catálogo con validación completa."""
+    """Crea o edita un registro del catálogo con validación completa. Solo el administrador escribe."""
     configuracion = ENTIDADES[entidad]
     clase_formulario = configuracion["formulario"]
 
@@ -347,8 +355,9 @@ def panel_formulario(request, entidad, objeto_id=None):
 # historial de ventas y los carros que la referencian siguen
 # siendo válidos.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def panel_desactivar(request, entidad, objeto_id):
-    """Da de baja lógicamente un registro, previa confirmación."""
+    """Da de baja lógicamente un registro, previa confirmación. Solo el administrador escribe."""
     configuracion = ENTIDADES[entidad]
 
     objeto, redireccion = obtener_o_redirigir(
@@ -395,9 +404,13 @@ def panel_desactivar(request, entidad, objeto_id):
     return render(request, "parciales/confirmar.html", contexto)
 
 
+@panel_solo_lectura_o_administrador
 def panel_reactivar(request, entidad, objeto_id):
-    """Revierte la baja lógica de un registro del catálogo."""
+    """Revierte la baja lógica de un registro del catálogo. Solo el administrador escribe."""
     configuracion = ENTIDADES[entidad]
+
+    if request.method != "POST":
+        return redirect(f"{configuracion['base_url']}{objeto_id}/")
 
     objeto, redireccion = obtener_o_redirigir(
         configuracion["modelo"],

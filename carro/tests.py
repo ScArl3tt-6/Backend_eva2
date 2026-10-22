@@ -503,14 +503,23 @@ class PruebasServiciosCarro(TestCase):
 # deben comportarse igual que la API.
 # ============================================================
 class PruebasHtmlCarro(TestCase):
-    """La pantalla /panel/carros/ opera el carro con las mismas reglas."""
+    """La pantalla /panel/carros/ opera el carro con las mismas reglas.
+
+    Se puede VER sin iniciar sesión, pero EDITAR (agregar, actualizar,
+    quitar, vaciar) exige una sesión de Administrador de TI; por eso
+    setUp() inicia sesión con cls.administrador antes de cada prueba.
+    """
 
     @classmethod
     def setUpTestData(cls):
-        """Crea un cliente y dos productos para la pantalla de carros."""
+        """Crea un cliente, un administrador y dos productos para la pantalla de carros."""
         cls.cliente = Usuario.objects.create_user(
             username="html_carro", email="html_carro@hardpointpc.cl",
             password="Compra.Segura.2026", rol=Rol.CLIENTE,
+        )
+        cls.administrador = Usuario.objects.create_user(
+            username="html_carro_admin", email="html_carro_admin@hardpointpc.cl",
+            password="Llave.Segura.2026", rol=Rol.ADMINISTRADOR,
         )
         cls.categoria = Categoria.objects.create(nombre="Almacenamiento SSD", icono="bi-device-hdd")
         cls.marca = Marca.objects.create(nombre="Samsung")
@@ -522,6 +531,10 @@ class PruebasHtmlCarro(TestCase):
             sku="SSD-HTML-ESCASO", nombre="Unidad SSD con una unidad",
             categoria=cls.categoria, marca=cls.marca, precio=Decimal("379990"), stock=1,
         )
+
+    def setUp(self):
+        """Inicia sesión como administrador: las pruebas de este archivo escriben."""
+        self.client.force_login(self.administrador)
 
     def test_pantalla_sin_cliente_elegido(self):
         """Sin el parámetro usuario, invita a elegir un cliente."""
@@ -624,3 +637,54 @@ class PruebasHtmlCarro(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "No existe un cliente")
+
+
+# ============================================================
+# BLOQUE 8 — SIN LOGIN SE VE, PERO NO SE EDITA
+# Corrige el agujero de seguridad detectado en el panel: cualquiera
+# podía vaciar o modificar el carro de cualquier cliente. Ahora GET
+# sigue abierto a todos; POST exige una sesión de Administrador de TI.
+# ============================================================
+class PruebasSeguridadHtmlCarro(TestCase):
+    """Sin iniciar sesión se puede ver el carro, pero no editarlo."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Cliente, carro y producto para probar el carro sin sesión de administrador."""
+        cls.cliente = Usuario.objects.create_user(
+            username="seg_carro_cliente", email="seg_carro_cliente@hardpointpc.cl",
+            password="Compra.Segura.2026", rol=Rol.CLIENTE,
+        )
+        cls.categoria = Categoria.objects.create(nombre="Fuentes de Poder", icono="bi-plug")
+        cls.marca = Marca.objects.create(nombre="Corsair")
+        cls.producto = Producto.objects.create(
+            sku="PSU-SEG-01", nombre="Fuente de prueba de seguridad",
+            categoria=cls.categoria, marca=cls.marca, precio=Decimal("99990"), stock=10,
+        )
+
+    def test_anonimo_puede_ver_el_carro_de_cualquier_cliente(self):
+        """Ver el carro de otra persona sigue sin exigir sesión."""
+        respuesta = self.client.get("/panel/carros/", {"usuario": self.cliente.id})
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "seg_carro_cliente")
+
+    def test_anonimo_no_puede_agregar_al_carro_de_otro(self):
+        """Sin sesión de administrador, agregar un producto no se ejecuta."""
+        respuesta = self.client.post(
+            "/panel/carros/agregar/",
+            {"usuario": self.cliente.id, "producto": self.producto.id, "cantidad": 3},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(
+            Carro.objects.get(usuario=self.cliente).items.filter(producto=self.producto).exists()
+        )
+
+    def test_cliente_autenticado_sin_rol_administrador_tampoco_puede_vaciar(self):
+        """Estar logueado no basta: el rol debe ser ADMINISTRADOR."""
+        self.client.force_login(self.cliente)
+
+        respuesta = self.client.post("/panel/carros/vaciar/", {"usuario": self.cliente.id})
+
+        self.assertEqual(respuesta.status_code, 302)

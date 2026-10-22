@@ -9,6 +9,7 @@
 #     (requisito crítico: el 404 no debe existir).
 # ============================================================
 
+from django.contrib.auth.views import LoginView
 from django.db.models import Count, Q, Sum
 from django.shortcuts import render
 from django.urls import Resolver404, resolve
@@ -21,6 +22,7 @@ from rest_framework.views import APIView
 from carro.models import Carro, ItemCarro
 from catalogo.models import Categoria, Marca, Producto
 from ordenes.models import EstadoOrden, Orden
+from usuarios.forms import FormularioLoginAdministrador
 from usuarios.models import Rol, Usuario
 
 
@@ -156,6 +158,24 @@ def panel(request):
         "migas": [{"etiqueta": "Gestión", "url": None}],
     }
     return render(request, "core/panel.html", contexto)
+
+
+# ============================================================
+# BLOQUE 2-B — LOGIN DEL PANEL DE ADMINISTRACIÓN
+# Usa la LoginView de Django (sesión de cookies, no JWT): es el
+# mismo mecanismo que django.contrib.admin, pero con una plantilla
+# propia y un formulario que además exige el rol ADMINISTRADOR
+# (FormularioLoginAdministrador, en usuarios/forms.py). El panel se
+# puede seguir viendo sin iniciar sesión; lo que esta pantalla
+# habilita es poder EDITAR algo.
+# ============================================================
+class PanelLoginView(LoginView):
+    """Login de sesión para operar el panel de gestión."""
+
+    template_name = "core/panel_login.html"
+    authentication_form = FormularioLoginAdministrador
+    redirect_authenticated_user = True
+    extra_context = {"titulo_pagina": "Acceso de administrador"}
 
 
 # ============================================================

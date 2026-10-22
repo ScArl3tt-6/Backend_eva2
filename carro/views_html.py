@@ -9,15 +9,22 @@
 # que el control de duplicados, la validación de stock y el
 # comportamiento del checkout son idénticos por ambos caminos.
 #
-# La pantalla no tiene login (así lo pide el enunciado): el cliente
-# cuyo carro se opera se elige con un parámetro ?usuario=<id>.
+# Cualquiera puede VER la pantalla y elegir el carro de un cliente
+# con ?usuario=<id>, pero EDITARLO (agregar, quitar, cambiar la
+# cantidad, vaciar o hacer el checkout) exige una sesión de
+# Administrador de TI: ver panel_solo_lectura_o_administrador en
+# core/utilidades.py.
 # ============================================================
 
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
 from catalogo.models import Producto
-from core.utilidades import entero_o_none, obtener_o_redirigir
+from core.utilidades import (
+    entero_o_none,
+    obtener_o_redirigir,
+    panel_solo_lectura_o_administrador,
+)
 from ordenes.servicios import (
     CarroVacioError,
     StockInsuficienteError,
@@ -121,8 +128,9 @@ def carros_panel(request):
 # si el producto ya estaba en el carro (sin duplicar la fila) y
 # rechaza cantidades mayores al stock. No descuenta stock.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def carro_agregar(request):
-    """Agrega un producto al carro del cliente elegido."""
+    """Agrega un producto al carro del cliente elegido. Solo el administrador escribe."""
     if request.method != "POST":
         return redirect(BASE_URL)
 
@@ -161,8 +169,9 @@ def carro_agregar(request):
 # ============================================================
 # BLOQUE 4 — MODIFICAR LA CANTIDAD DE UN ÍTEM
 # ============================================================
+@panel_solo_lectura_o_administrador
 def carro_actualizar(request, producto_id):
-    """Fija la cantidad exacta de un producto del carro."""
+    """Fija la cantidad exacta de un producto del carro. Solo el administrador escribe."""
     if request.method != "POST":
         return redirect(BASE_URL)
 
@@ -205,8 +214,9 @@ def carro_actualizar(request, producto_id):
 # ============================================================
 # BLOQUE 5 — QUITAR UN ÍTEM (BAJA LÓGICA)
 # ============================================================
+@panel_solo_lectura_o_administrador
 def carro_quitar(request, producto_id):
-    """Quita un producto del carro mediante baja lógica."""
+    """Quita un producto del carro mediante baja lógica. Solo el administrador escribe."""
     if request.method != "POST":
         return redirect(BASE_URL)
 
@@ -244,8 +254,9 @@ def carro_quitar(request, producto_id):
 # ============================================================
 # BLOQUE 6 — VACIAR EL CARRO
 # ============================================================
+@panel_solo_lectura_o_administrador
 def carro_vaciar(request):
-    """Deja todos los ítems del carro con activo = False."""
+    """Deja todos los ítems del carro con activo = False. Solo el administrador escribe."""
     if request.method != "POST":
         return redirect(BASE_URL)
 
@@ -273,8 +284,9 @@ def carro_vaciar(request):
 # función que atiende POST /api/ordenes/checkout/. Por eso el
 # precio se congela igual y el stock tampoco se toca aquí.
 # ============================================================
+@panel_solo_lectura_o_administrador
 def carro_checkout(request):
-    """Genera la orden a partir del carro del cliente elegido."""
+    """Genera la orden a partir del carro del cliente elegido. Solo el administrador escribe."""
     if request.method != "POST":
         return redirect(BASE_URL)
 

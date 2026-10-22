@@ -416,11 +416,21 @@ class PruebasRestriccionesBaseDeDatos(TestCase):
 # tampoco borra filas.
 # ============================================================
 class PruebasHtmlCatalogo(TestCase):
-    """Las pantallas HTML del catálogo crean, editan y dan de baja."""
+    """Las pantallas HTML del catálogo crean, editan y dan de baja.
+
+    El catálogo público y los listados de gestión se VEN sin iniciar
+    sesión; crear, editar, dar de baja o reactivar exige una sesión
+    de Administrador de TI, por eso setUp() inicia sesión con
+    cls.administrador antes de cada prueba.
+    """
 
     @classmethod
     def setUpTestData(cls):
-        """Crea un catálogo mínimo para operar desde el HTML."""
+        """Crea un catálogo mínimo y un administrador para operar desde el HTML."""
+        cls.administrador = Usuario.objects.create_user(
+            username="html_catalogo_admin", email="html_catalogo_admin@hardpointpc.cl",
+            password="Llave.Segura.2026", rol=Rol.ADMINISTRADOR,
+        )
         cls.categoria = Categoria.objects.create(nombre="Fuentes de Poder", icono="bi-plug")
         cls.marca = Marca.objects.create(nombre="Corsair", pais_origen="Estados Unidos")
         cls.producto = Producto.objects.create(
@@ -431,6 +441,10 @@ class PruebasHtmlCatalogo(TestCase):
             precio=109990,
             stock=12,
         )
+
+    def setUp(self):
+        """Inicia sesión como administrador: las pruebas de este archivo escriben."""
+        self.client.force_login(self.administrador)
 
     def test_catalogo_publico_responde_200(self):
         """La pantalla /catalogo/ se sirve correctamente."""
@@ -567,3 +581,59 @@ class PruebasHtmlCatalogo(TestCase):
         self.client.post(f"/panel/marcas/{noctua.id}/desactivar/", follow=True)
         self.assertTrue(Marca.objects.filter(pk=noctua.pk).exists())
         self.assertFalse(Marca.objects.get(pk=noctua.pk).activo)
+
+
+# ============================================================
+# BLOQUE 6 — SIN LOGIN SE VE, PERO NO SE EDITA EL CATÁLOGO
+# Corrige el agujero de seguridad detectado en el panel: cualquiera
+# podía crear, editar o dar de baja productos, categorías y marcas.
+# Ahora GET sigue abierto a todos; POST exige una sesión de
+# Administrador de TI.
+# ============================================================
+class PruebasSeguridadHtmlCatalogo(TestCase):
+    """Sin iniciar sesión se puede ver el catálogo de gestión, pero no editarlo."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Catálogo mínimo para probar la gestión sin sesión de administrador."""
+        cls.categoria = Categoria.objects.create(nombre="Almacenamiento SSD", icono="bi-device-hdd")
+        cls.marca = Marca.objects.create(nombre="Kingston")
+        cls.producto = Producto.objects.create(
+            sku="SSD-SEG-01", nombre="Unidad de prueba de seguridad",
+            categoria=cls.categoria, marca=cls.marca, precio=99990, stock=5,
+        )
+
+    def test_anonimo_puede_ver_el_listado_de_gestion(self):
+        """El listado de gestión de productos sigue sin exigir sesión."""
+        respuesta = self.client.get("/panel/productos/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "SSD-SEG-01")
+
+    def test_anonimo_no_puede_editar_un_producto(self):
+        """Sin sesión de administrador, la edición no se ejecuta."""
+        respuesta = self.client.post(
+            f"/panel/productos/{self.producto.id}/editar/",
+            {
+                "sku": self.producto.sku,
+                "nombre": self.producto.nombre,
+                "descripcion": "",
+                "categoria": self.categoria.id,
+                "marca": self.marca.id,
+                "precio": 1,
+                "stock": self.producto.stock,
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.precio, Decimal("99990"))
+
+    def test_anonimo_no_puede_dar_de_baja_una_categoria(self):
+        """Sin sesión de administrador, la baja lógica no se ejecuta."""
+        respuesta = self.client.post(f"/panel/categorias/{self.categoria.id}/desactivar/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.categoria.refresh_from_db()
+        self.assertTrue(self.categoria.activo)

@@ -498,3 +498,140 @@ class PruebasModeloUsuario(TestCase):
 
         self.assertTrue(hasattr(cliente, "carro"))
         self.assertFalse(hasattr(administrador, "carro"))
+
+
+# ============================================================
+# BLOQUE 7 — LOGIN DEL PANEL (SESIÓN, NO JWT)
+# /panel/login/ es un login de sesión de Django, independiente del
+# JWT de la API: habilita la ESCRITURA en el panel de gestión
+# (/panel/...), que se puede ver sin iniciar sesión. Solo entra una
+# cuenta con rol ADMINISTRADOR.
+# ============================================================
+class PruebasLoginDelPanel(TestCase):
+    """FormularioLoginAdministrador solo deja entrar a un Administrador de TI."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Un administrador y un cliente, ambos con contraseña conocida."""
+        cls.administrador = Usuario.objects.create_user(
+            username="panel_admin", email="panel_admin@hardpointpc.cl",
+            password="Llave.Segura.2026", rol=Rol.ADMINISTRADOR,
+        )
+        cls.cliente = Usuario.objects.create_user(
+            username="panel_cliente", email="panel_cliente@hardpointpc.cl",
+            password="Compra.Segura.2026", rol=Rol.CLIENTE,
+        )
+
+    def test_administrador_puede_iniciar_sesion_en_el_panel(self):
+        """Con rol ADMINISTRADOR y contraseña correcta, el login funciona."""
+        respuesta = self.client.post(
+            "/panel/login/",
+            {"username": "panel_admin", "password": "Llave.Segura.2026"},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(
+            self.client.session.get("_auth_user_id"),
+            "Debería quedar una sesión iniciada.",
+        )
+
+    def test_cliente_no_puede_iniciar_sesion_en_el_panel(self):
+        """Aunque la contraseña sea correcta, un CLIENTE no es administrador."""
+        respuesta = self.client.post(
+            "/panel/login/",
+            {"username": "panel_cliente", "password": "Compra.Segura.2026"},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "no tiene permisos de administrador")
+        self.assertFalse(self.client.session.get("_auth_user_id"))
+
+    def test_logout_del_panel_es_por_post(self):
+        """Django 5 exige POST para cerrar sesión (evita el CSRF de logout)."""
+        self.client.force_login(self.administrador)
+
+        respuesta = self.client.get("/panel/logout/")
+        self.assertEqual(respuesta.status_code, 405)
+
+        respuesta = self.client.post("/panel/logout/")
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(self.client.session.get("_auth_user_id"))
+
+
+# ============================================================
+# BLOQUE 8 — SIN LOGIN SE VE, PERO NO SE EDITA UN USUARIO
+# Es el agujero más grave del panel: cualquiera podía crear, editar
+# (incluso asignar el rol ADMINISTRADOR) o dar de baja la cuenta de
+# cualquier persona. Ahora GET sigue abierto a todos; POST exige una
+# sesión de Administrador de TI.
+# ============================================================
+class PruebasSeguridadHtmlUsuarios(TestCase):
+    """Sin iniciar sesión se puede ver la ficha de un usuario, pero no editarla."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Un cliente cualquiera y un administrador para loguearse en las pruebas que sí escriben."""
+        cls.cliente = Usuario.objects.create_user(
+            username="seg_usuario_cliente", email="seg_usuario_cliente@hardpointpc.cl",
+            password="Compra.Segura.2026", rol=Rol.CLIENTE,
+        )
+        cls.administrador = Usuario.objects.create_user(
+            username="seg_usuario_admin", email="seg_usuario_admin@hardpointpc.cl",
+            password="Llave.Segura.2026", rol=Rol.ADMINISTRADOR,
+        )
+
+    def test_anonimo_puede_ver_la_ficha_de_cualquier_usuario(self):
+        """Ver los datos de otra persona sigue sin exigir sesión."""
+        respuesta = self.client.get(f"/panel/usuarios/{self.cliente.id}/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "seg_usuario_cliente")
+
+    def test_anonimo_no_puede_editar_el_usuario_de_otro(self):
+        """Sin sesión de administrador, la edición no se ejecuta."""
+        respuesta = self.client.post(
+            f"/panel/usuarios/{self.cliente.id}/editar/",
+            {
+                "username": self.cliente.username,
+                "email": self.cliente.email,
+                "first_name": "",
+                "last_name": "",
+                "telefono": "",
+                "rol": Rol.ADMINISTRADOR,
+                "is_active": "on",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.rol, Rol.CLIENTE)
+
+    def test_anonimo_no_puede_dar_de_baja_un_usuario(self):
+        """Sin sesión de administrador, la baja lógica no se ejecuta."""
+        respuesta = self.client.post(f"/panel/usuarios/{self.cliente.id}/desactivar/")
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.cliente.refresh_from_db()
+        self.assertTrue(self.cliente.is_active)
+
+    def test_administrador_si_puede_editar_un_usuario(self):
+        """Con sesión de administrador, la edición sí se ejecuta."""
+        self.client.force_login(self.administrador)
+
+        respuesta = self.client.post(
+            f"/panel/usuarios/{self.cliente.id}/editar/",
+            {
+                "username": self.cliente.username,
+                "email": self.cliente.email,
+                "first_name": "Nombre",
+                "last_name": "Editado",
+                "telefono": "",
+                "rol": Rol.CLIENTE,
+                "is_active": "on",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.last_name, "Editado")

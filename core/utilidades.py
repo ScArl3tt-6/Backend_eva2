@@ -13,7 +13,10 @@
 # muestra la pantalla de redirección con su cuenta regresiva.
 # ============================================================
 
+from functools import wraps
+
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import redirect
 
 
@@ -62,3 +65,42 @@ def booleano_de_texto(valor, por_omision=False):
     if valor is None or valor == "":
         return por_omision
     return str(valor).strip().lower() in {"true", "1", "si", "sí", "on"}
+
+
+# ============================================================
+# BLOQUE 3 — LECTURA PÚBLICA, ESCRITURA SOLO DEL ADMINISTRADOR
+# El panel de gestión (/panel/...) puede verlo cualquier visitante,
+# sin iniciar sesión: ese fue siempre el criterio del proyecto para
+# que la defensa se pudiera mostrar sin fricción. Lo que faltaba es
+# que CUALQUIERA podía además editar: pagar una orden ajena, vaciar
+# el carro de otra persona o dar de baja una cuenta, sin que nadie
+# quedara identificado como responsable del cambio.
+#
+# Este decorador aplica a las pantallas HTML el mismo criterio que
+# ya existe en la API (usuarios.permisos.EsAdministradorOSoloLectura):
+# los métodos seguros (GET, HEAD, OPTIONS) quedan abiertos a todos;
+# cualquier otro método exige una sesión de administrador de TI
+# (is_staff, sincronizado con rol=ADMINISTRADOR en Usuario.save()).
+# ============================================================
+_METODOS_SEGUROS = ("GET", "HEAD", "OPTIONS")
+
+
+def panel_solo_lectura_o_administrador(vista):
+    """Permite ver la pantalla a cualquiera; exige administrador para escribir."""
+
+    @wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        if request.method in _METODOS_SEGUROS:
+            return vista(request, *args, **kwargs)
+
+        if request.user.is_authenticated and request.user.is_staff:
+            return vista(request, *args, **kwargs)
+
+        messages.error(
+            request,
+            "Esa acción requiere una sesión de Administrador de TI. Inicie sesión "
+            "para continuar.",
+        )
+        return redirect_to_login(request.get_full_path(), login_url="core:panel-login")
+
+    return envoltura

@@ -23,6 +23,7 @@ una explicación breve para defenderlo oralmente.
 6. [Calidad, comentarios y footer](#6-calidad-comentarios-y-footer)
 7. [Guion de la demostración de 5 minutos](#7-guion-de-la-demostración-de-5-minutos)
 8. [Preguntas probables y cómo responderlas](#8-preguntas-probables-y-cómo-responderlas)
+9. [Seguridad del panel: por qué ahora exige login](#9-seguridad-del-panel-por-qué-ahora-exige-login)
 
 ---
 
@@ -742,10 +743,14 @@ anotación de consulta con `Sum(F("cantidad") * F("precio_unitario"))`
 (`OrdenQuerySet.con_total`, L54), que es la que se usa en los listados para no
 consultar el detalle de cada orden por separado.
 
-**«¿Por qué las pantallas HTML no tienen login?»**
-Porque así lo pide el enunciado: la seguridad por roles vive en la API JWT. Las
-pantallas usan el ORM y llaman a las mismas funciones de servicio, de modo que el
-control de stock y de concurrencia es idéntico por ambos caminos.
+**«¿Las pantallas HTML tienen login?»**
+Se pueden **ver** sin iniciar sesión: la seguridad por roles de la API JWT no
+cambia, y el panel sirve para mostrar la demostración sin fricción. Pero
+**editar algo** (pagar una orden, vaciar un carro, dar de baja un usuario) exige
+una sesión de Administrador de TI (ver la sección «Por qué el panel ahora exige
+login» más abajo). Las pantallas siguen usando el ORM y llamando a las mismas
+funciones de servicio que la API, de modo que el control de stock y de
+concurrencia es idéntico por ambos caminos.
 
 **«¿Qué pasa si alguien salta los serializers?»**
 La base de datos lo rechaza. Los `CheckConstraint` (`precio > 0`, `stock >= 0`,
@@ -765,3 +770,88 @@ L314), sobre `self.request.user`, **no** con un parámetro de la petición: es
 imposible pedir las órdenes de otro. Para el pago existe además el permiso de
 objeto `EsPropietarioDeLaOrden` (`usuarios/permisos.py` L112). Pruebas:
 `PruebasMisOrdenes`.
+
+---
+
+## 9. Seguridad del panel: por qué ahora exige login
+
+### 9.1 Qué estaba mal (en una frase)
+
+El panel de gestión (`/panel/...`) se construyó, a propósito, sin pedir inicio de
+sesión: la idea original era que la seguridad por roles viviera solo en la API
+JWT, y que el panel fuera una ventana de administración de apoyo para la
+demostración. El problema es que ese panel no es de solo lectura: desde ahí se
+**paga** una orden, se **vacía** el carro de cualquier cliente o se **edita o da
+de baja** cualquier cuenta de usuario (incluso asignándole el rol
+`ADMINISTRADOR`). Sin login, cualquier visitante de internet podía hacer
+cualquiera de esas cosas sobre los datos de cualquier otra persona, con solo
+conocer o adivinar la URL (por ejemplo `/panel/ordenes/7/pagar/` o
+`/panel/usuarios/3/editar/`). Eso es un **IDOR** (*Insecure Direct Object
+Reference*): el servidor confiaba en el id de la URL sin comprobar nunca quién
+estaba al otro lado.
+
+### 9.2 Por qué es grave al publicar el sitio en internet
+
+Mientras el proyecto corría solo en `localhost`, el riesgo era bajo: el único que
+podía tocar esas URLs era quien tenía el computador. Al desplegarlo en
+`https://hardpoint-genesis.duckdns.org` (EC2 + Nginx + Gunicorn, de cara a
+internet), esa misma falla queda disponible para **cualquier persona del
+planeta**, sin necesidad de contraseña ni de token: basta con cambiar un número
+en la URL. Un visitante cualquiera podría cancelar ventas reales, vaciar
+carritos de clientes reales o convertir su propia cuenta en administrador
+editándose a sí mismo desde `/panel/usuarios/<su-id>/editar/`.
+
+### 9.3 Cómo se corrigió
+
+Se aplicó al panel HTML el mismo criterio que la API ya usaba para el catálogo
+(`EsAdministradorOSoloLectura`, `usuarios/permisos.py` L93): **lectura abierta,
+escritura solo del administrador**.
+
+| Capa | Antes | Ahora |
+|---|---|---|
+| Ver una orden, un carro, un usuario o el catálogo de gestión (GET) | Sin login | Sigue sin login: cualquiera puede ver (criterio sin cambios) |
+| Pagar, cambiar el estado de una orden, agregar/quitar/vaciar un carro, hacer el checkout desde el panel, crear/editar/dar de baja/reactivar un usuario o un producto/categoría/marca (POST) | Sin login: lo hacía cualquiera | Exige una sesión de **Administrador de TI** |
+
+Piezas nuevas:
+
+- `core.utilidades.panel_solo_lectura_o_administrador` — decorador que deja pasar
+  GET/HEAD/OPTIONS a cualquiera y exige `request.user.is_staff` (sincronizado con
+  `rol = ADMINISTRADOR`) para cualquier otro método. Se aplicó a las vistas de
+  escritura de `usuarios`, `carro`, `ordenes` y `catalogo` (`views_html.py` de
+  cada app).
+- `/panel/login/` y `/panel/logout/` — sesión de **Django** (cookies), separada
+  por completo del JWT de la API. Usan `django.contrib.auth.views.LoginView` y
+  `LogoutView`, no un formulario propio que maneje contraseñas a mano.
+  `FormularioLoginAdministrador` (`usuarios/forms.py`) es la misma
+  `AuthenticationForm` de Django, con una validación agregada: si la cuenta no
+  tiene rol `ADMINISTRADOR`, el login se rechaza aunque la contraseña sea
+  correcta. El logout es por `POST` (un botón, no un enlace), porque Django 5 ya
+  no acepta `GET` en `LogoutView`: así nadie puede cerrarle la sesión a otro con
+  un simple enlace.
+- Como ahora sí hay un `request.user` real detrás de cada cambio, el historial de
+  una orden (`ordenes/views_html.py`) deja de atribuir el pago o el cambio de
+  estado al "primer administrador de la base" (un parche que existía porque no
+  había nadie identificado) y pasa a registrar al administrador que realmente
+  inició sesión.
+
+### 9.4 Por qué no se exigió login también para leer
+
+Porque el panel sigue siendo, además, la vitrina de la demostración: el profesor
+debe poder entrar a `/panel/ordenes/`, `/panel/usuarios/` o `/panel/carros/` y
+ver datos reales sin tener que autenticarse primero. Exponer información para
+lectura no mueve dinero ni cambia nada; exponer la escritura sí. Por eso el corte
+se hizo exactamente donde importa: en los métodos que modifican datos.
+
+### 9.5 Pruebas que lo demuestran
+
+- `carro/tests.py` → `PruebasSeguridadHtmlCarro`: sin sesión se puede ver el
+  carro de cualquier cliente, pero agregar o vaciar responde con una redirección
+  al login y no modifica nada; un cliente logueado (sin rol administrador)
+  tampoco puede.
+- `ordenes/tests.py` → `PruebasSeguridadHtmlOrdenes`: sin sesión no se puede
+  pagar ni cambiar el estado de una orden ajena.
+- `catalogo/tests.py` → `PruebasSeguridadHtmlCatalogo`: sin sesión no se puede
+  editar un producto ni dar de baja una categoría.
+- `usuarios/tests.py` → `PruebasSeguridadHtmlUsuarios` y `PruebasLoginDelPanel`:
+  sin sesión no se puede editar ni dar de baja un usuario; con sesión de cliente
+  tampoco; el login rechaza a quien no es administrador; el logout exige `POST`.

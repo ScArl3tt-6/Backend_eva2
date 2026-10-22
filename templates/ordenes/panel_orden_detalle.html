@@ -132,12 +132,21 @@
         <h3><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Cambiar el estado</h3>
       </div>
       <div class="tarjeta-cuerpo">
+        {% if not request.user.is_staff %}
+          <div class="caja-aviso mb-3">
+            <i class="bi bi-lock me-1" aria-hidden="true"></i>
+            Cualquiera puede ver esta orden. Para pagarla o cambiar su estado hace
+            falta <a href="{% url 'core:panel-login' %}">iniciar sesión como
+            administrador</a>.
+          </div>
+        {% endif %}
         {% if transiciones %}
           <p class="texto-suave texto-chico">
             Desde <strong>{{ orden.estado }}</strong> la orden puede pasar a:
             {% for estado in transiciones %}<strong>{{ estado }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.
           </p>
 
+          {% if request.user.is_staff %}
           <div class="d-grid gap-2">
             {% if puede_pagar %}
               <form method="post" action="/panel/ordenes/{{ orden.pk }}/pagar/" class="d-grid"
@@ -195,6 +204,7 @@
               <i class="bi bi-check2" aria-hidden="true"></i> Aplicar el cambio
             </button>
           </form>
+          {% endif %}
 
         {% else %}
           <div class="caja-aviso">
